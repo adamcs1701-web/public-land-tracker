@@ -1,0 +1,26 @@
+name: Fetch basemap
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch water, highways and streets from the Census Bureau
+        run: python3 -u tools/fetch_basemap.py
+      - name: Save to the repository
+        run: |
+          git config user.name "refresh-bot"
+          git config user.email "refresh-bot@users.noreply.github.com"
+          git add -f app/basemap
+          git diff --cached --quiet || git commit -q -m "Basemap data $(date -u +%F)"
+          for TRY in 1 2 3 4 5; do
+            git pull -q --rebase origin main && git push -q && break
+            echo "push attempt $TRY failed, retrying"; sleep $((TRY * 7))
+          done
