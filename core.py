@@ -119,12 +119,15 @@ def enrich(rec, county_cfg, density, surplus):
         if out["max_du_per_acre"] is None:
             out["max_du_per_acre"] = du
     z = density.get(((rec.get("zoning_jurisdiction") or "").upper(), zc)) or density.get((rec["county"].upper(), zc))
-    if z:
-        out["zoning_category"] = out["zoning_category"] or z.get("category") or None
-        try:
-            out["max_du_per_acre"] = float(z["max_du_per_acre"])
-        except (KeyError, ValueError, TypeError):
-            pass
+    out["max_du_per_acre_high"] = out["density_note"] = None
+    if z:      # the hand-checked table wins over what the layer description implied
+        out["zoning_category"] = z.get("category") or out["zoning_category"]
+        for src, dst in (("max_du_per_acre", "max_du_per_acre"), ("max_du_per_acre_high", "max_du_per_acre_high")):
+            try:
+                out[dst] = float(z[src])
+            except (KeyError, ValueError, TypeError):
+                pass
+        out["density_note"] = (z.get("note") or "").strip() or None
     d, ac = out["max_du_per_acre"], out["acres"]
     out["est_units"] = int(d * ac) if d and ac else None
     s = surplus.get((rec["county"].upper(), rec["id"].upper()))

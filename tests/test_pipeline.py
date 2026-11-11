@@ -72,9 +72,9 @@ cfg["zoning_sources"] = {"broward": [
     {"jurisdiction": "Unincorporated", "url": b + "/County/MapServer/0", "code_field": "ZONECODE", "enabled": True}]}
 cfg["counties"]["miami-dade"]["providers"] = [{"type": "regrid_file", "name": "Example file in Regrid format", "path": "regrid_md.csv"}]
 with open(os.path.join(tmp, "zoning_density.csv"), "w") as f:
-    f.write("jurisdiction,zoning_code,category,max_du_per_acre,source_url\n"
-            "Mock City,RM-25,multifamily,25,example\nMock City,B-2,commercial,0,example\nUnincorporated,RM-25,multifamily,16,example\n"
-            "miami-dade,RU-4,multifamily,50,example\nmiami-dade,MC,mixed-use,125,example\nmiami-dade,BU-2,commercial,36,example\nmiami-dade,RU-1,single-family,6,example\n")
+    f.write("jurisdiction,zoning_code,category,max_du_per_acre,max_du_per_acre_high,note,source_url\n"
+            "Mock City,RM-25,multifamily,25,60,Edge 25 Core 60,example\nMock City,B-2,commercial,,,no housing by right,example\nUnincorporated,RM-25,multifamily,16,,,example\n"
+            "miami-dade,RU-4,multifamily,50,,,example\nmiami-dade,MC,mixed-use,125,,,example\nmiami-dade,BU-2,commercial,36,,,example\nmiami-dade,RU-1,single-family,6,,,example\n")
 with open(os.path.join(tmp, "surplus_parcels.csv"), "w") as f:
     f.write("county,parcel_id,list_name,list_date,source_url\nmiami-dade,EX-23-0001,Example surplus list,2026-07-01,example\nmiami-dade,EX-23-0008,Example surplus list,2026-07-01,example\nbroward,EX-16-0003,Example surplus list,2026-07-01,example\n")
 json.dump(cfg, open(os.path.join(tmp, "config.json"), "w"))
@@ -93,6 +93,7 @@ assert all(p["zoning"] in ("RM-25", "B-2") for p in br), "every Broward parcel g
 assert {p["zoning_jurisdiction"] for p in br} == {"Mock City", "Unincorporated"}
 assert all((p["lon"] > -80.25) == (p["zoning_jurisdiction"] == "Mock City") for p in br), "first covering layer wins"
 assert {p["max_du_per_acre"] for p in br if p["zoning"] == "RM-25"} == {25.0, 16.0}, "same code, different city, different density"
+assert any(p["max_du_per_acre_high"] == 60.0 and p["density_note"] for p in br) and all(p["max_du_per_acre"] is None for p in br if p["zoning"] == "B-2")
 assert all(p["zoning"] is None for p in d1["parcels"] if p["county"] == "palm-beach")
 mis = [p for p in d1["parcels"] if not p["coded_gov"]]
 assert mis and all(p["gov_basis"] == "owner name" for p in mis)
