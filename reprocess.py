@@ -21,7 +21,7 @@ for p in doc["parcels"]:
             dropped += 1
             continue
     r = core.enrich(rec, cfg["counties"][p["county"]], density, surplus)
-    if r is None or r["owner_level"] in set(cfg.get("exclude_owner_levels", [])):
+    if r is None or core.exclusion_reason(r, r["owner_level"], cfg):
         dropped += 1
         continue
     for k in ("provider", "last_seen", "first_seen"):

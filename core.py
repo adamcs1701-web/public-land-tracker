@@ -20,6 +20,8 @@ OWNER_RULES = [
 _RULES = [(lvl, re.compile(rx)) for lvl, rx in OWNER_RULES]
 # Tax-roll public-land flag. Only the unambiguous letters are trusted; in practice "D" is
 # set on parcels of every level, so it only tells us the parcel is public, not whose it is.
+# Special districts whose names contain a county's name.
+_DISTRICT_FIRST = [("district", re.compile(r"^NORTHERN PALM BEACH COUNTY|COUNTY (HOUSING|HEALTH|HOSPITAL|EXPRESSWAY|AVIATION) AUTH|COUNTY HEALTH CARE DIST"))]
 PUBLIC_LND = {"F": "federal", "S": "state", "T": "state", "C": "county", "M": "municipal", "W": "district", "D": "other", "R": "other"}
 # Names that contain a government-sounding phrase but are private ("REAL ESTATE OF FL LLC",
 # "UNITED STATES DEVELOPMENT LTD", "LONGSHOREMEN OF DADE COUNTY INC").
@@ -52,6 +54,9 @@ def owner_level(owner, use_code=None, public_flag=None, county_patterns=()):
     coded = use_code is not None and 80 <= use_code <= 89
     if PRIVATE.search(name) and not re.search(r"HOUSING AUTH|REDEVELOP", name):
         return ("other", "land use code") if coded else (None, None)
+    for lvl, rx in _RULES[:1] + _DISTRICT_FIRST:      # "SCHOOL BOARD OF BROWARD COUNTY" is not the county
+        if rx.search(name):
+            return lvl, "owner name"
     for p in county_patterns:
         if p.upper() in name:
             return "county", "owner name"
@@ -170,24 +175,38 @@ def diff(old, new, today, failed_counties=()):
     return changes
 
 
+def _guarded(s, params, timeout=30):
+    """Query one outside layer politely: limited parallel requests per server, and a server is
+    only given up on after many failures in a row, not at the first hiccup."""
+    import threading, time
+    sem = s.setdefault("_sem", threading.Semaphore(int(s.get("max_parallel", 6))))
+    with sem:
+        for attempt in range(3):
+            try:
+                d = providers._get_json(s["url"].rstrip("/") + "/query", params, retries=1, timeout=timeout)
+                s["_fails"] = 0
+                return d
+            except Exception as e:
+                s["_fails"] = s.get("_fails", 0) + 1
+                s["_missed"] = s.get("_missed", 0) + (1 if attempt == 2 else 0)
+                if s["_fails"] >= 40:
+                    s["_dead"] = str(e)
+                    return None
+                time.sleep(1.5 * (attempt + 1))
+    return None
+
+
 def zoning_lookup(lat, lon, sources, stats=None):
     """Ask each enabled zoning layer which zone contains this point. Returns
-    (jurisdiction, code, description, group) from the first layer that covers it, else None.
-    A layer that errors is skipped for the rest of the run so one dead server
-    cannot stall the refresh."""
+    (jurisdiction, code, description, group) from the first layer that covers it, else None."""
     for s in sources:
         if not (s.get("enabled") and s.get("url") and s.get("code_field")) or s.get("_dead"):
             continue
         fields = ",".join(f for f in (s["code_field"], s.get("desc_field"), s.get("group_field")) if f)
-        try:
-            d = providers._get_json(s["url"].rstrip("/") + "/query", {
-                "geometry": "%s,%s" % (lon, lat), "geometryType": "esriGeometryPoint", "inSR": 4326,
-                "spatialRel": "esriSpatialRelIntersects", "outFields": fields,
-                "returnGeometry": "false", "f": "json"}, retries=2, timeout=30)
-        except Exception as e:
-            s["_dead"] = str(e)
-            continue
-        feats = d.get("features") or []
+        d = _guarded(s, {"geometry": "%s,%s" % (lon, lat), "geometryType": "esriGeometryPoint", "inSR": 4326,
+                         "spatialRel": "esriSpatialRelIntersects", "outFields": fields,
+                         "returnGeometry": "false", "f": "json"})
+        feats = (d or {}).get("features") or []
         if feats:
             a = {k.lower(): v for k, v in feats[0]["attributes"].items()}
             code = a.get(s["code_field"].lower())
@@ -195,6 +214,36 @@ def zoning_lookup(lat, lon, sources, stats=None):
                 grp = a.get((s.get("group_field") or "").lower())
                 return (s["jurisdiction"], str(code).strip(), (a.get((s.get("desc_field") or "").lower()) or None),
                         str(grp).strip() if grp not in (None, "") else None)
+    return None
+
+
+def in_water(lat, lon, wcfg):
+    """True if the point falls inside a mapped water body, False if not, None if the check could not run."""
+    if not (wcfg and wcfg.get("enabled") and wcfg.get("url")) or wcfg.get("_dead") or lat is None:
+        return None
+    d = _guarded(wcfg, {"geometry": "%s,%s" % (lon, lat), "geometryType": "esriGeometryPoint", "inSR": 4326,
+                        "spatialRel": "esriSpatialRelIntersects", "returnCountOnly": "true", "f": "json"})
+    return None if d is None or "count" not in d else d["count"] > 0
+
+
+_PAT_CACHE = {}
+
+
+def exclusion_reason(rec, level, cfg):
+    """Why a government parcel is out of scope (owner type, land use, owner name, submerged), or None."""
+    if level in cfg.get("exclude_owner_levels", []):
+        return "owner type: %s" % level
+    if rec.get("use_code") in cfg.get("exclude_use_codes", []):
+        return "land use code %s" % rec.get("use_code")
+    name = (rec.get("owner") or "").upper()
+    for label, rx in (cfg.get("exclude_owner_patterns") or {}).items():
+        if _PAT_CACHE.setdefault(rx, re.compile(rx)).search(name):
+            return label
+    lp = cfg.get("exclude_legal_patterns")
+    if lp and rec.get("legal") and _PAT_CACHE.setdefault(lp, re.compile(lp)).search(rec["legal"].upper()):
+        return "legal description says submerged"
+    if rec.get("in_water") is True and (cfg.get("water_check") or {}).get("drop_in_water"):
+        return "centre point is in a water body"
     return None
 
 

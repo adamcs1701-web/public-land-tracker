@@ -6,6 +6,23 @@
     "federal"
   ],
   "_exclude_note": "Owner types dropped from the dataset entirely. Options: federal, state, county, municipal, school, district, other.",
+  "exclude_use_codes": [
+    94,
+    95,
+    96
+  ],
+  "_exclude_use_codes_note": "State land use codes dropped entirely: 94 right-of-way (roads, canals, ditches), 95 rivers, lakes and submerged land, 96 marsh, swamp, waste land, borrow pits.",
+  "exclude_owner_patterns": {
+    "state conservation agency": "FISH (&|AND) W|\\bFWCC?\\b|\\bGFWFC\\b|GAME (&|AND) F|REC (&|AND) PARKS|\\bDNR\\b|FLORIDA FOREVER|NATURAL AREA|STATE PARK",
+    "water management or drainage district": "WATER (MANAGEMENT|MGMT|MGT|MANGEMENT|M\\b)|(SOUTH|SO) (FLA|FLORIDA|FL) WATER|\\bSFWMD\\b|DRAINAGE|WATER CONTR|FLOOD CONTROL|CONSERVANCY|IMPROVEMENT DIST|^NORTHERN PALM BEACH COUNTY"
+  },
+  "exclude_legal_patterns": "SUBMERGED|SUBMRG|\\bSUBM\\b|\\bSUB LAND|BAY BOTTOM|LAKE BOTTOM|RIVER BOTTOM",
+  "water_check": {
+    "enabled": true,
+    "url": "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Hydro/MapServer/1",
+    "drop_in_water": true,
+    "_note": "Census Bureau areal hydrography. A parcel whose centre point falls inside a mapped water body is dropped."
+  },
   "counties": {
     "miami-dade": {
       "label": "Miami-Dade",
@@ -96,7 +113,8 @@
         "desc_field": "Transect_Desc",
         "enabled": true,
         "note": "Fields confirmed 2026-11-11 from layer metadata. Not yet queried live.",
-        "group_field": "Transect"
+        "group_field": "Transect",
+        "max_parallel": 2
       },
       {
         "jurisdiction": "Coral Gables",

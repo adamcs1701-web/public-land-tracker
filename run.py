@@ -18,10 +18,9 @@ today = datetime.date.today().isoformat()
 
 prev = json.load(open(out_path)) if os.path.exists(out_path) else {"parcels": [], "changes": []}
 key = lambda r: r["county"] + "|" + r["id"]
-EXCLUDE = set(cfg.get("exclude_owner_levels", []))
 def _still_in_scope(r):       # so a rule change is not reported as parcels leaving government hands
     b = cfg["counties"].get(r["county"], {}).get("development_boundary") or {}
-    return r.get("owner_level") not in EXCLUDE and not (b.get("drop_outside") and r.get("inside_boundary") is False)
+    return not core.exclusion_reason(r, r.get("owner_level"), cfg) and not (b.get("drop_outside") and r.get("inside_boundary") is False)
 old = {key(r): r for r in prev["parcels"] if _still_in_scope(r)}
 density = core.load_table(rel(cfg.get("zoning_density_table")), ("jurisdiction", "zoning_code"))
 surplus = core.load_table(rel(cfg.get("surplus_list")), ("county", "parcel_id"))
@@ -40,18 +39,25 @@ for ckey, ccfg in cfg["counties"].items():
         if pcfg.get("path"):
             pcfg = dict(pcfg, path=rel(pcfg["path"]))
         try:
+            ccfg["_exclude_use_codes"] = cfg.get("exclude_use_codes", [])
             prov = providers.make(pcfg, ckey, ccfg)
             n_raw = n_kept = 0
             got = {}
             zsrc = (cfg.get("zoning_sources") or {}).get(ckey, [])
             bcfg = ccfg.get("development_boundary")
             bound = core.load_boundary(bcfg, base)
-            recs, n_outside = [], 0
+            recs, n_outside, seen, why = [], 0, set(), {}
             for rec in prov.fetch():
                 n_raw += 1
-                if not core.owner_level(rec["owner"], rec["use_code"], rec["public_land_flag"], ccfg.get("owner_patterns", ()))[0]:
+                if rec["id"] in seen:           # the name search runs in several passes
                     continue
-                if (rec["acres"] or 0) < cfg.get("min_acres", 0):
+                seen.add(rec["id"])
+                lvl = core.owner_level(rec["owner"], rec["use_code"], rec["public_land_flag"], ccfg.get("owner_patterns", ()))[0]
+                if not lvl or (rec["acres"] or 0) < cfg.get("min_acres", 0):
+                    continue
+                reason = core.exclusion_reason(rec, lvl, cfg)
+                if reason:
+                    why[reason.split(":")[0]] = why.get(reason.split(":")[0], 0) + 1
                     continue
                 if bound:
                     rec["inside_boundary"] = bound.contains(rec["lon"], rec["lat"])
@@ -59,8 +65,21 @@ for ckey, ccfg in cfg["counties"].items():
                         n_outside += 1
                         continue
                 recs.append(rec)
+            for k, v in sorted(why.items(), key=lambda kv: -kv[1]):
+                print("%-11s %6d dropped: %s" % (ckey, v, k), flush=True)
             if bound:
-                print("%-11s %d parcels outside the %s dropped" % (ckey, n_outside, bound.name), flush=True)
+                print("%-11s %6d dropped: outside the %s" % (ckey, n_outside, bound.name), flush=True)
+            wcfg = cfg.get("water_check")
+            if wcfg and wcfg.get("enabled"):
+                def add_water(rec):
+                    pr = old.get(ckey + "|" + rec["id"])
+                    rec["in_water"] = pr["in_water"] if pr and pr.get("in_water") is not None and pr.get("lat") == rec["lat"] else core.in_water(rec["lat"], rec["lon"], wcfg)
+                    return rec
+                with ThreadPoolExecutor(max_workers=6) as pool:
+                    recs = list(pool.map(add_water, recs))
+                wet = [x for x in recs if core.exclusion_reason(x, None, cfg)]
+                recs = [x for x in recs if not core.exclusion_reason(x, None, cfg)]
+                print("%-11s %6d dropped: centre point is in a water body%s" % (ckey, len(wet), " (check unavailable for part of the run)" if wcfg.get("_dead") or wcfg.get("_missed") else ""), flush=True)
             print("%-11s %d candidate parcels, looking up zoning..." % (ckey, len(recs)), flush=True)
 
             def add_zoning(rec):            # free feeds carry no zoning
@@ -78,7 +97,7 @@ for ckey, ccfg in cfg["counties"].items():
                 recs = list(pool.map(add_zoning, recs))
             for rec in recs:
                 r = core.enrich(rec, ccfg, density, surplus)
-                if r and r["owner_level"] not in EXCLUDE:
+                if r:
                     r["provider"], r["last_seen"] = prov.name, today
                     got[key(r)] = r
                     n_kept += 1
@@ -91,7 +110,9 @@ for ckey, ccfg in cfg["counties"].items():
             print("%-11s %-38s %6d fetched, %6d government parcels kept, %6d with zoning" % (ckey, prov.name, n_raw, len(got), nz))
             for s in zsrc:
                 if s.get("_dead"):
-                    print("   zoning layer skipped (%s): %s" % (s["jurisdiction"], s["_dead"][:120]), file=sys.stderr)
+                    print("   zoning layer gave up (%s): %s" % (s["jurisdiction"], s["_dead"][:120]), flush=True)
+                elif s.get("_missed"):
+                    print("   zoning layer %s: %d lookups went unanswered" % (s["jurisdiction"], s["_missed"]), flush=True)
             ok = True
             break
         except Exception as e:

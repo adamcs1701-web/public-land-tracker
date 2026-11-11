@@ -57,7 +57,10 @@ def serve(rows, port=8765, page_cap=9):
         def log_message(self, *a): pass
         def do_GET(self):
             u = urlparse(self.path); q = {k: v[0] for k, v in parse_qs(u.query).items()}
-            if u.path.endswith("/query") and "geometry" in q:
+            if u.path.endswith("/query") and "geometry" in q and "returnCountOnly" in q:
+                lon, lat = map(float, q["geometry"].split(","))
+                body = dict(count=1 if (lat > 26.4 and lon < -80.28) else 0)      # mock lake in west Palm Beach
+            elif u.path.endswith("/query") and "geometry" in q:
                 lon, lat = map(float, q["geometry"].split(","))
                 east = lon > -80.25      # mock city covers the east half; west half is "unincorporated"
                 want_city = "/City/" in u.path

@@ -12,7 +12,7 @@ LEASEHOLD_CODE = 90                    # gov-owned land leased to a private part
 FIELDS = ["id", "county", "owner", "use_code", "acres", "buildings", "just_value",
           "land_value", "address", "city", "lat", "lon", "public_land_flag",
           "zoning", "zoning_category", "max_du_per_acre", "flood_zone", "roll_year",
-          "zoning_jurisdiction", "zoning_description", "inside_boundary", "owner_line2", "zoning_group"]
+          "zoning_jurisdiction", "zoning_description", "inside_boundary", "owner_line2", "zoning_group", "legal", "in_water"]
 
 
 def blank():
@@ -71,7 +71,7 @@ class ArcGISDorProvider(Provider):
     Two passes: (1) parcels coded governmental, (2) parcels whose owner name looks
     governmental but were coded something else."""
     OUT = ("PARCEL_ID,CO_NO,OWN_NAME,DOR_UC,LND_SQFOOT,NO_BULDNG,JV,LND_VAL,"
-           "PHY_ADDR1,PHY_CITY,PUBLIC_LND,ASMNT_YR,OWN_ADDR1")
+           "PHY_ADDR1,PHY_CITY,PUBLIC_LND,ASMNT_YR,OWN_ADDR1,S_LEGAL")
     # Server-side net for government owners whose parcels are NOT coded 80-89.
     # Deliberately loose: core.owner_level() makes the final call on each row.
     NAME_TERMS = ["UNITED STATES", "STATE OF FL", "TIITF", "INTERNAL IMPROVEMENT", "CITY OF ", "TOWN OF ",
@@ -106,16 +106,20 @@ class ArcGISDorProvider(Provider):
 
     WINDOW = 50000
 
+    GROUP = 10      # owner-name terms per query; long LIKE lists make the server reject the request
+
     def _clauses(self):
         codes = list(GOV_USE_CODES) + [LEASEHOLD_CODE]
+        skip = [c for c in self.county.get("_exclude_use_codes", []) if c not in codes]
         if "String" in self._field_type("DOR_UC"):
-            vals = ",".join("'%03d','%02d'" % (c, c) for c in codes)
+            fmt = lambda cs: ",".join("'%03d','%02d'" % (c, c) for c in cs)
         else:
-            vals = ",".join(str(c) for c in codes)
-        yield "DOR_UC IN (%s)" % vals
+            fmt = lambda cs: ",".join(str(c) for c in cs)
+        yield "DOR_UC IN (%s)" % fmt(codes)
         terms = self.NAME_TERMS + self.county.get("owner_patterns", [])
-        likes = " OR ".join("OWN_NAME LIKE '%%%s%%'" % t.replace("'", "''") for t in terms)
-        yield "DOR_UC NOT IN (%s) AND (%s)" % (vals, likes)
+        for i in range(0, len(terms), self.GROUP):      # other use codes, found by owner name
+            likes = " OR ".join("OWN_NAME LIKE '%%%s%%'" % t.replace("'", "''") for t in terms[i:i + self.GROUP])
+            yield "DOR_UC NOT IN (%s) AND (%s)" % (fmt(codes + skip), likes)
 
     def _co_sql(self):
         co = self.county["dor_county_no"]
@@ -172,7 +176,7 @@ class ArcGISDorProvider(Provider):
                     for rec in chunk:
                         got += 1
                         yield rec
-            print("   %s: pass %d of 2 done, %d rows, %.0fs" % (self.county_key, n, got, time.time() - t0), flush=True)
+            print("   %s: pass %d done, %d rows, %.0fs" % (self.county_key, n, got, time.time() - t0), flush=True)
 
     def _normalize(self, ft):
         a = {k.upper(): v for k, v in ft["attributes"].items()}
@@ -190,7 +194,8 @@ class ArcGISDorProvider(Provider):
                  just_value=_num(a.get("JV")), land_value=_num(a.get("LND_VAL")),
                  address=(a.get("PHY_ADDR1") or "").strip(), city=(a.get("PHY_CITY") or "").strip(),
                  lat=lat, lon=lon, public_land_flag=(a.get("PUBLIC_LND") or "").strip() or None,
-                 roll_year=a.get("ASMNT_YR"), owner_line2=(a.get("OWN_ADDR1") or "").strip() or None)
+                 roll_year=a.get("ASMNT_YR"), owner_line2=(a.get("OWN_ADDR1") or "").strip() or None,
+                 legal=(a.get("S_LEGAL") or "").strip() or None)
         return r
 
 

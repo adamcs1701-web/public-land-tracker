@@ -122,6 +122,9 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
       <fieldset><legend class="lab">Density</legend>
         <div class="row"><label>Min units per acre<input type="number" id="minDu" min="0" step="1"></label><label>Min total units<input type="number" id="minUnits" min="0" step="10"></label></div>
       </fieldset>
+      <fieldset><legend class="lab">Assessed value</legend>
+        <div class="row"><label>Min value per acre ($), 0 for any<input type="number" id="minVpa" min="0" step="1000"></label></div>
+      </fieldset>
       <fieldset><legend class="lab">Zoning allowed</legend><div class="chips" id="zon"></div></fieldset>
       <fieldset><legend class="lab">Owner</legend><div class="chips" id="own"></div></fieldset>
       <fieldset><legend class="lab">County</legend><div class="chips" id="cty"></div></fieldset>
@@ -175,7 +178,7 @@ const ZCATS=["mixed-use","multifamily","commercial","industrial","single-family"
 const ZW={"mixed-use":15,"multifamily":15,"commercial":12,"residential":8,"industrial":6,"single-family":4,"agricultural":2,"other":2};
 const OWNERS=["county","municipal","state","federal","school","district","other"];
 const OWNLAB={county:"County",municipal:"City",state:"State",federal:"Federal",school:"School board",district:"Special district",other:"Other"};
-const DEF={minAc:1,maxAc:"",minDu:20,minUnits:0,zon:["mixed-use","multifamily","commercial","residential"],own:OWNERS.slice(),cty:null,
+const DEF={minAc:1,maxAc:"",minDu:20,minUnits:0,minVpa:0,zon:["mixed-use","multifamily","commercial","residential"],own:OWNERS.slice(),cty:null,
   vacOnly:true,xPark:true,xSchool:true,xHosp:true,xLease:true,xFlood:false,surOnly:false};
 const CITIES=[["Miami",25.7617,-80.1918],["Fort Lauderdale",26.1224,-80.1373],["West Palm Beach",26.7153,-80.0534]];
 let data=EXAMPLE, C=load("crit")||JSON.parse(JSON.stringify(DEF)), rows=[], selKey=null, sortBy="score", sortDir=-1;
@@ -212,15 +215,16 @@ function assess(p,c){
   if(c.zon.length<ZCATS.length){if(!z)unknown.push("Zoning is not in this data source");else if(!c.zon.includes(z))fail.push("Zoned "+(p.zoning||z)+" ("+z+")");else pass.push("Zoned "+(p.zoning||z))}
   if(+c.minDu>0){if(p.max_du_per_acre==null)unknown.push("Allowed density is not known");else if(p.max_du_per_acre<+c.minDu)fail.push("Allows "+p.max_du_per_acre+" units per acre, under your minimum of "+c.minDu);else pass.push("Allows "+p.max_du_per_acre+" units per acre")}
   if(+c.minUnits>0){if(p.est_units==null)unknown.push("Unit yield cannot be estimated");else if(p.est_units<+c.minUnits)fail.push("About "+p.est_units+" units, under your minimum of "+c.minUnits)}
+  if(+c.minVpa>0){if(p.just_value==null||!ac)unknown.push("Assessed value per acre is not known");else if(p.just_value/ac<+c.minVpa)fail.push("Assessed at $"+fmt(p.just_value/ac)+" an acre, under your minimum of $"+fmt(+c.minVpa)+" (often conservation or submerged land)")}
   if(p.surplus_list)pass.push("On a surplus list: "+p.surplus_list);
   let s=0; if(ac)s+=30*Math.min(1,ac/5); if(p.vacant)s+=20; if(p.max_du_per_acre)s+=25*Math.min(1,p.max_du_per_acre/50); if(z)s+=ZW[z]||0; if(p.surplus_list)s+=10;
   return {tier:fail.length?"not":unknown.length?"review":"ripe",score:Math.round(s),fail,unknown,pass,z}}
 
-function readCrit(){["minAc","maxAc","minDu","minUnits"].forEach(k=>C[k]=$(k).value);
+function readCrit(){["minAc","maxAc","minDu","minUnits","minVpa"].forEach(k=>C[k]=$(k).value);
   ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly"].forEach(k=>C[k]=$(k).checked);
   const picked=id=>[...$(id).querySelectorAll("input:checked")].map(i=>i.value);
   C.zon=picked("zon");C.own=picked("own");C.cty=picked("cty");save("crit",C)}
-function writeCrit(){["minAc","maxAc","minDu","minUnits"].forEach(k=>$(k).value=C[k]);
+function writeCrit(){["minAc","maxAc","minDu","minUnits","minVpa"].forEach(k=>$(k).value=C[k]==null?0:C[k]);
   ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly"].forEach(k=>$(k).checked=!!C[k]);
   const chips=(id,vals,lab,on)=>{$(id).replaceChildren(...vals.map(v=>{const i=el("input",{type:"checkbox",value:v,id:id+"_"+v});i.checked=!on||on.includes(v);return el("label",null,[i,lab(v)])}))};
   chips("zon",ZCATS,v=>v[0].toUpperCase()+v.slice(1),C.zon); const present=new Set(data.parcels.map(p=>p.owner_level)); chips("own",OWNERS.filter(v=>present.has(v)),v=>OWNLAB[v],C.own);

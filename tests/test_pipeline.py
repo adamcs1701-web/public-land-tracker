@@ -44,6 +44,8 @@ assert core.department_of("111 NW 1ST ST STE 2460", "MIAMI-DADE COUNTY") is None
 assert core.department_of(None, "CITY OF MIAMI-DEPT OF P&D") == "Dept Of P&D"
 assert core.department_of("FINANCE DEPT PO BOX 610847", "CITY OF X") == "Finance Dept" and core.department_of("PO BOX 12", "CITY OF X") is None
 assert L("POMPANO BEACH COMMUNITY", 80) == "district" and L("NORTH SPRINGS IMPROVEMENT", 80) == "district" and L("AVENIR CDD", 80) == "district"
+assert L("SCHOOL BOARD OF BROWARD COUNTY", 83, None, ("BROWARD COUNTY",)) == "school" and L("BROWARD COUNTY", 86, None, ("BROWARD COUNTY",)) == "county"
+assert L("NORTHERN PALM BEACH COUNTY", 80, None, ("PALM BEACH COUNTY",)) == "district" and L("PALM BEACH COUNTY", 86, None, ("PALM BEACH COUNTY",)) == "county"
 assert L("SMITH JOHN", 1) is None
 assert L("COUNTRY CLUB ESTATES LLC", 10) is None                  # 'COUNTRY' must not match 'COUNTY'
 assert L("ACME LLC", 80) == "other"                               # coded governmental, unknown owner
@@ -59,6 +61,15 @@ url = "http://127.0.0.1:8765/arcgis/rest/services/Mock/FeatureServer/0"
 cfg = json.load(open(os.path.join(root, "config.json")))
 cfg["output"] = "out/parcels.json"
 cfg["exclude_owner_levels"] = []
+for _k in ("exclude_use_codes", "exclude_owner_patterns", "exclude_legal_patterns", "water_check"):
+    cfg.pop(_k, None)
+_real = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json")))
+_x = lambda **k: core.exclusion_reason(dict({"owner": "BROWARD COUNTY", "use_code": 80}, **k), k.pop("lvl", "county") if "lvl" in k else "county", _real)
+assert _x() is None and _x(use_code=94) and _x(use_code=95) and _x(use_code=96) and _x(use_code=86) is None
+assert _x(owner="SOUTH FLA WATER MGMT DIST") and _x(owner="LAKE WORTH DRAINAGE DIST") and _x(owner="TIITF FISH & WILDLIFE") and _x(owner="TIITF FWCC")
+assert _x(owner="TIITF/STATE OF FLORIDA") is None and _x(owner="CITY OF WATERFORD") is None and _x(owner="SCHOOL BOARD OF BROWARD COUNTY") is None
+assert _x(legal="SUBMERGED LAND LYING E OF") and _x(legal="LOT 4 BLK 2 SUBDIVISION OF X") is None and _x(in_water=True) and _x(in_water=False) is None
+assert core.exclusion_reason({"owner": "U S A", "use_code": 88}, "federal", _real)
 for _c in cfg["counties"].values():
     _c.pop("development_boundary", None)
 sq = core.Boundary({"features": [{"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [4, 0], [4, 4], [0, 4], [0, 0]], [[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]]]}}]})
@@ -82,6 +93,8 @@ cfg["zoning_sources"] = {"broward": [
     {"jurisdiction": "Dead Town", "url": "http://127.0.0.1:1/x/0", "code_field": "Z", "enabled": True},
     {"jurisdiction": "Not ready", "url": b + "/City/MapServer/0", "code_field": "", "enabled": False},
     {"jurisdiction": "Unincorporated", "url": b + "/County/MapServer/0", "code_field": "ZONECODE", "enabled": True}]}
+cfg["exclude_use_codes"] = [82]
+cfg["water_check"] = {"enabled": True, "url": b + "/Water/MapServer/1", "drop_in_water": True}
 cfg["counties"]["miami-dade"]["providers"] = [{"type": "regrid_file", "name": "Example file in Regrid format", "path": "regrid_md.csv"}]
 with open(os.path.join(tmp, "zoning_density.csv"), "w") as f:
     f.write("jurisdiction,zoning_code,category,max_du_per_acre,max_du_per_acre_high,note,source_url\n"
@@ -96,6 +109,8 @@ r1 = run(); print(r1.stdout, r1.stderr); assert r1.returncode == 0
 d1 = json.load(open(os.path.join(tmp, "out/parcels.json")))
 ids = {p["id"] for p in d1["parcels"]}
 gov_rows = [r for r in rows if not r["OWN_NAME"].startswith("EXAMPLE") and r["LND_SQFOOT"] / 43560 >= cfg["min_acres"]]
+gov_rows = [r for r in gov_rows if r["DOR_UC"] != "082" and not (r["CO_NO"] == 60 and r["_c"]["x"] < -80.28)]
+assert any(r["DOR_UC"] == "082" for r in rows) and any(r["CO_NO"] == 60 and r["_c"]["x"] < -80.28 for r in rows), "the test data must exercise both rules"
 assert ids == {r["PARCEL_ID"] for r in gov_rows}, "every government parcel, no private ones, paging complete"
 assert d1["changes"] == [], "first run has nothing to compare against"
 md = [p for p in d1["parcels"] if p["county"] == "miami-dade"]
