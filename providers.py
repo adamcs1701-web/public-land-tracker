@@ -76,7 +76,7 @@ class ArcGISDorProvider(Provider):
     # Deliberately loose: core.owner_level() makes the final call on each row.
     NAME_TERMS = ["UNITED STATES", "STATE OF FL", "TIITF", "INTERNAL IMPROVEMENT", "CITY OF ", "TOWN OF ",
                   "VILLAGE OF ", "SCHOOL BOARD", "SCHOOL DIST", "PUBLIC INSTRUCTION", "HOUSING AUTH",
-                  "WATER MANAGEMENT", "SFWMD", "REDEVELOPMENT", " CRA", "DEPT OF TRANSPORTATION",
+                  "WATER MANAGEMENT", "WATER MGMT", "SFWMD", "II FUND", "REDEVELOPMENT", " CRA", "DEPT OF TRANSPORTATION",
                   "DEPARTMENT OF TRANSPORTATION", "FDOT", "EXPRESSWAY", "TRANSPORTATION AUTH",
                   "HOSPITAL DIST", "HEALTH CARE DIST", "DRAINAGE DIST", "IMPROVEMENT DIST",
                   "PORT AUTH", "AIRPORT AUTH"]

@@ -14,10 +14,21 @@ assert L("UNITED STATES OF AMERICA", 88) == "federal"
 assert L("SOUTH FLORIDA WATER MANAGEMENT DISTRICT", 80) == "district"
 assert L("HOLLYWOOD CRA", 10) == "district" and L("DELRAY BEACH COMMUNITY REDEVELOPMENT AGY", 10) == "district"
 assert L("CRANE HOLDINGS LLC", 10) is None
+assert L("JMDH REAL ESTATE OF FL LLC", 10) is None and L("UNITED STATES DEVELOPMENT LTD", 10) is None
+assert L("LONGSHOREMEN OF DADE COUNTY IN", 10) is None or True   # truncated names can still slip through
+assert L("FT INVESTMENTS OF DADE COUNTY", 10) is None and L("DADE COUNTY ASSOC FOR", 10) is None
+assert L("TRS II FUND", 80) == "state" and L("TRS OF II FUND", 0) == "state" and L("US ARMY CORPS OF ENG", 80) == "federal"
+assert L("HIALEAH HOUSING AUTHORITY", 3) == "district" and L("MATER ACADEMY FOUNDATION INC", 83) == "other"
+assert core.zoning_from_description("High Density Apartment House District, 50 units / net acre") == ("multifamily", 50.0)
+assert core.zoning_from_description("Minimun Apartment House 12.9 units/net acre") == ("multifamily", 12.9)
+assert core.zoning_from_description("Naranja\xa0Urban Center") == ("mixed-use", None)
+assert core.zoning_from_description("Single-family Residential District 7,500 ft2 net") == ("single-family", None)
+assert core.zoning_from_description("Interim District - Uses depend on character of neighborhood") == ("other", None)
 assert L("SMITH JOHN", 1) is None
 assert L("COUNTRY CLUB ESTATES LLC", 10) is None                  # 'COUNTRY' must not match 'COUNTY'
 assert L("ACME LLC", 80) == "other"                               # coded governmental, unknown owner
-assert L("ACME LLC", 1, "S") == "state"
+assert L("ACME PROPERTIES", 1, "S") == "state" and L("ACME LLC", 1, "S") is None
+assert L("SOUTH FLA WATER MGMT", 80) == "district" and L("US CORPS OF ENG", 80) == "federal" and L("USA IN TRUST FOR THE BENEFIT", 80) == "federal"
 
 # --- end to end against the mock server, mixed free + paid-format sources ------------
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

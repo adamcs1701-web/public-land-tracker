@@ -10,20 +10,47 @@ USE_LABELS = {80: "Vacant governmental", 81: "Military", 82: "Forest, park, recr
 # First match wins, so order matters (school boards before counties, etc.).
 OWNER_RULES = [
     ("school", r"SCHOOL (BOARD|DISTRICT)|BOARD OF PUBLIC INSTRUCTION|\bSBBC\b"),
-    ("federal", r"UNITED STATES|\bU ?S ?A\b|\bU S GOVERNMENT|US DEPT|FEDERAL AVIATION|POSTAL SERVICE"),
-    ("state", r"STATE OF FL|\bTIITF\b|INTERNAL IMPROVEMENT|\bFDOT\b|DEP(T|ARTMENT) OF TRANSPORTATION|BOARD OF TRUSTEES OF THE|UNIVERSITY BOARD|BOARD OF REGENTS"),
-    ("district", r"WATER MANAGEMENT|\bSFWMD\b|HOUSING AUTH|REDEVELOPMENT (AGENCY|AGY|AUTH)|COMMUNITY REDEVELOPMENT|\bCRA\b|DRAINAGE DIST|EXPRESSWAY|PORT (OF|AUTHORITY)|AIRPORT AUTH|TRANSPORTATION AUTH|HOSPITAL DIST|HEALTH CARE DIST|IMPROVEMENT DIST"),
+    ("federal", r"\bU ?S ARMY|ARMY CORPS|CORPS? OF ENG|\bUSA\b|BIG CYPRESS|NATL PARK|NATIONAL PARK|DEPT OF (THE )?INTERIOR|UNITED STATES|\bU ?S ?A\b|\bU S GOVERNMENT|US DEPT|FEDERAL AVIATION|POSTAL SERVICE"),
+    ("state", r"\bSTATE OF FL|\bTIIT?F\b|\bTRS? (OF )?(THE )?I ?I (TRUST )?FUND|TRS OF THE INTERNAL|INTERNAL IMPROVEMENT|\bFDOT\b|DEP(T|ARTMENT) OF TRANSPORTATION|BOARD OF TRUSTEES OF THE|UNIVERSITY BOARD|BOARD OF REGENTS"),
+    ("district", r"WATER (MANAGEMENT|MGMT|MGT)|(SOUTH|SO) (FLA|FLORIDA|FL) WATER|\bSFWMD\b|HOUSING AUTH|REDEVELOPMENT (AGENCY|AGY|AUTH)|COMMUNITY REDEVELOP|\bC ?R ?A$|\bCRA\b|DRAINAGE DIST|EXPRESSWAY|PORT (OF|AUTHORITY)|AIRPORT AUTH|TRANSPORTATION AUTH|HOSPITAL DIST|HEALTH CARE DIST|IMPROVEMENT DIST"),
     ("municipal", r"\b(CITY|TOWN|VILLAGE) OF\b"),
     ("county", r"\bCOUNTY\b"),
 ]
 _RULES = [(lvl, re.compile(rx)) for lvl, rx in OWNER_RULES]
-PUBLIC_LND = {"F": "federal", "S": "state", "C": "county", "M": "municipal", "D": "district"}
+# Tax-roll public-land flag. Only the unambiguous letters are trusted; in practice "D" is
+# set on parcels of every level, so it only tells us the parcel is public, not whose it is.
+PUBLIC_LND = {"F": "federal", "S": "state", "T": "state", "C": "county", "M": "municipal", "W": "district", "D": "other", "R": "other"}
+# Names that contain a government-sounding phrase but are private ("REAL ESTATE OF FL LLC",
+# "UNITED STATES DEVELOPMENT LTD", "LONGSHOREMEN OF DADE COUNTY INC").
+PRIVATE = re.compile(r"\b(LLC|L L C|INC|LTD|CORP(?! OF ENG)|LLP|LP|ASSOC|ASSN|FOUNDATION|PARTNERS|PARTNERSHIP|HOLDINGS|INVESTMENTS|CHURCH|CLUB)\b|\bCONDO|\b(ASSOC|INVESTMENTS|LONGSHOREMEN|BANK) (FOR|OF)\b")
+
+ZONE_WORDS = [("mixed-use", ("urban center", "urban area district", "corridor district", "mixed use", "traditional neighborhood")),
+              ("multifamily", ("apartment", "multi-family", "multifamily", "multiple family")),
+              ("residential", ("townhouse", "two-family", "duplex", "bungalow")),
+              ("single-family", ("single-family", "single family", "estate")),
+              ("commercial", ("business", "office", "commercial", "retail")),
+              ("industrial", ("industrial", "employment center", "manufactur")),
+              ("agricultural", ("agricultur",))]
+DENSITY_RX = re.compile(r"(\d+(?:\.\d+)?)\s*(?:dwelling\s+)?units?\s*(?:/|per)\s*(?:net\s+|gross\s+)?acre", re.I)
+
+
+def zoning_from_description(desc):
+    """Category and density as far as the zoning layer's own description states them."""
+    d = (desc or "").replace("\xa0", " ").lower()
+    if not d.strip():
+        return None, None
+    cat = next((c for c, words in ZONE_WORDS if any(w in d for w in words)), "other")
+    m = DENSITY_RX.search(d)
+    return cat, (float(m.group(1)) if m else None)
 USE_LEVEL = {81: "federal", 83: "school", 86: "county", 87: "state", 88: "federal", 89: "municipal"}
 
 
 def owner_level(owner, use_code=None, public_flag=None, county_patterns=()):
     """Return (level, how_we_know) or (None, None) if nothing says it is government."""
     name = (owner or "").upper()
+    coded = use_code is not None and 80 <= use_code <= 89
+    if PRIVATE.search(name) and not re.search(r"HOUSING AUTH|REDEVELOP", name):
+        return ("other", "land use code") if coded else (None, None)
     for p in county_patterns:
         if p.upper() in name:
             return "county", "owner name"
@@ -65,6 +92,13 @@ def enrich(rec, county_cfg, density, surplus):
                use_label=USE_LABELS.get(uc, "Non-governmental use code %s" % uc if uc is not None else "Unknown"),
                leased=(uc == 90), coded_gov=uc is not None and 80 <= uc <= 89)
     zc = (rec["zoning"] or "").upper()
+    if (rec["zoning"] or "").strip().upper() in ("NONE", "N/A", ""):
+        out["zoning"] = rec["zoning"] = None
+    if rec["zoning"] and rec.get("zoning_description"):
+        cat, du = zoning_from_description(rec["zoning_description"])
+        out["zoning_category"] = out["zoning_category"] or cat
+        if out["max_du_per_acre"] is None:
+            out["max_du_per_acre"] = du
     z = density.get(((rec.get("zoning_jurisdiction") or "").upper(), zc)) or density.get((rec["county"].upper(), zc))
     if z:
         out["zoning_category"] = out["zoning_category"] or z.get("category") or None
