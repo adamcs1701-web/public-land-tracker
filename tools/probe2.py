@@ -1,15 +1,22 @@
 import json, urllib.parse, urllib.request
 def get(u, p):
-    req = urllib.request.Request(u + "?" + urllib.parse.urlencode(p), headers={"User-Agent": "Mozilla/5.0 govland-tracker"})
-    with urllib.request.urlopen(req, timeout=180) as r:
+    req = urllib.request.Request(u + "?" + urllib.parse.urlencode(p), headers={"User-Agent": "govland-tracker/0.1"})
+    with urllib.request.urlopen(req, timeout=60) as r:
         return json.loads(r.read().decode())
-for tag, u in (("UDBPOLY", "https://gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/17"),
-               ("UDBLINE", "https://gisweb.miamidade.gov/arcgis/rest/services/Wasd/UrbanDevelopmentBoundary_1_v1/MapServer/0")):
+T = [("MIAMI", "https://gis.miami.gov/gis/rest/services/Zoning/ZoningMiami21/MapServer/5", "M21_ZONE,Transect_Desc,Transect,Map_Code,Bldg_Height,Intensity",
+      [(-80.1918, 25.7743), (-80.2400, 25.7700), (-80.2000, 25.8100), (-80.2550, 25.7300), (-80.1900, 25.7900)]),
+     ("GABLES", "https://cgportal.coralgables.com/egswa/rest/services/EnerGov/DisplayMap/MapServer/21", "Zone,Zone_Desc",
+      [(-80.2590, 25.7500), (-80.2684, 25.7215), (-80.2600, 25.7480), (-80.2780, 25.7400)])]
+for tag, u, f, pts in T:
+    for lon, lat in pts:
+        try:
+            d = get(u + "/query", {"geometry": "%s,%s" % (lon, lat), "geometryType": "esriGeometryPoint", "inSR": 4326, "spatialRel": "esriSpatialRelIntersects", "outFields": f, "returnGeometry": "false", "f": "json"})
+            print(tag, lon, lat, json.dumps([x["attributes"] for x in d.get("features", [])])[:400] if "error" not in d else d["error"])
+        except Exception as e:
+            print(tag, "FAIL", e)
     try:
-        m = get(u, {"f": "json"})
-        print(tag + "_META", json.dumps({k: m.get(k) for k in ("name", "geometryType", "description", "editingInfo", "copyrightText")})[:900])
-        d = get(u + "/query", {"where": "1=1", "outFields": "*", "outSR": 4326, "f": "geojson", "geometryPrecision": 5, "maxAllowableOffset": 0.0001})
-        print(tag + "_PROPS", json.dumps([f["properties"] for f in d["features"]])[:600])
-        print(tag + "_JSON " + json.dumps(d, separators=(",", ":")))
+        d = get(u + "/query", {"where": "1=1", "outFields": f, "returnGeometry": "false", "returnDistinctValues": "true", "f": "json"})
+        vals = sorted({json.dumps(x["attributes"], sort_keys=True) for x in d.get("features", [])})
+        print(tag, "DISTINCT", len(vals)); [print(tag, "VAL", v[:300]) for v in vals[:120]]
     except Exception as e:
-        print(tag + "_FAIL", e)
+        print(tag, "DISTINCT FAIL", e)
