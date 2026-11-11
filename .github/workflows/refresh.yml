@@ -43,8 +43,10 @@ jobs:
             git add -f data/parcels.json run.log
             git diff --cached --quiet || git commit -q -m "Data refresh $C $(date -u +%F)"
             git stash -u -q || true
-            git pull -q --rebase origin main
-            git push -q
+            for TRY in 1 2 3 4; do
+              git pull -q --rebase origin main && git push -q && break
+              echo "push attempt $TRY failed, retrying"; sleep $((TRY * 7))
+            done
             git stash pop -q || true
           done
           if [ -n "$FAILED" ]; then echo "Failed counties:$FAILED"; exit 1; fi

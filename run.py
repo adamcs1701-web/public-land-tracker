@@ -83,8 +83,10 @@ for ckey, ccfg in cfg["counties"].items():
                     got[key(r)] = r
                     n_kept += 1
             new.update(got)
+            sk = getattr(prov, "skipped", [])
             sources.append(dict(county=ckey, label=ccfg["label"], provider=prov.name,
-                                source_as_of=prov.as_of(), fetched=today, parcels=len(got)))
+                                source_as_of=prov.as_of(), fetched=today, parcels=len(got),
+                                skipped_rows=sum(b - a + 1 for a, b in sk)))
             nz = sum(1 for x in got.values() if x["zoning"])
             print("%-11s %-38s %6d fetched, %6d government parcels kept, %6d with zoning" % (ckey, prov.name, n_raw, len(got), nz))
             for s in zsrc:
