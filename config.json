@@ -59,7 +59,15 @@
           "name": "FL statewide cadastral (DOR schema)",
           "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0"
         }
-      ]
+      ],
+      "development_boundary": {
+        "name": "Urban/Suburban Tier",
+        "url": "https://pbcmaps.pbcgov.org/arcgis/rest/services/OpenData/Planning_Open_Data/MapServer/16",
+        "where": "FNAME='URBAN/SUBURBAN TIER'",
+        "file": "boundaries/palm_beach_urban_suburban_tier.geojson",
+        "drop_outside": true,
+        "_note": "Palm Beach County Managed Growth Tier System. Only the tier named URBAN/SUBURBAN TIER is kept; the separate URBAN/SUBURBAN GLADES TIER is not."
+      }
     }
   },
   "paid_example": {

@@ -10,7 +10,7 @@ doc = json.load(open(path))
 density = core.load_table(os.path.join(base, cfg["zoning_density_table"]), ("jurisdiction", "zoning_code"))
 surplus = core.load_table(os.path.join(base, cfg["surplus_list"]), ("county", "parcel_id"))
 bounds = {k: (core.Boundary(json.load(open(os.path.join(base, c["development_boundary"]["file"]))), c["development_boundary"].get("name", "")), c["development_boundary"].get("drop_outside"))
-          for k, c in cfg["counties"].items() if c.get("development_boundary")}
+          for k, c in cfg["counties"].items() if c.get("development_boundary") and os.path.exists(os.path.join(base, c["development_boundary"]["file"]))}
 keep, dropped = [], 0
 for p in doc["parcels"]:
     rec = dict(p); rec["zoning_category"] = None; rec["max_du_per_acre"] = None

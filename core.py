@@ -227,18 +227,35 @@ class Boundary:
         return False
 
 
+def _esri_to_geojson(d):
+    """Minimal converter for servers that cannot return GeoJSON: every ring becomes its own polygon."""
+    feats = []
+    for f in d.get("features", []):
+        for ring in (f.get("geometry") or {}).get("rings", []):
+            feats.append({"type": "Feature", "properties": {}, "geometry": {"type": "Polygon", "coordinates": [ring]}})
+    return {"type": "FeatureCollection", "features": feats}
+
+
 def load_boundary(bcfg, base):
     """Fresh copy from the county's server if reachable, else the saved file."""
     if not bcfg:
         return None
     path = os.path.join(base, bcfg["file"])
     if bcfg.get("url"):
-        try:
-            d = providers._get_json(bcfg["url"].rstrip("/") + "/query", {"where": "1=1", "outFields": "OBJECTID", "outSR": 4326,
-                                    "f": "geojson", "geometryPrecision": 5, "maxAllowableOffset": 0.0001}, retries=2, timeout=60)
-            b = Boundary(d, bcfg.get("name", ""))
-            json.dump(d, open(path, "w"), separators=(",", ":"))
-            return b
-        except Exception as e:
-            print("   boundary server unavailable, using saved copy (%s)" % str(e)[:100])
+        q = {"where": bcfg.get("where", "1=1"), "outFields": "OBJECTID", "outSR": 4326, "geometryPrecision": 5,
+             "maxAllowableOffset": 0.0001, "returnGeometry": "true"}
+        for fmt in ("geojson", "json"):
+            try:
+                d = providers._get_json(bcfg["url"].rstrip("/") + "/query", dict(q, f=fmt), retries=2, timeout=90)
+                if fmt == "json":
+                    d = _esri_to_geojson(d)
+                b = Boundary(d, bcfg.get("name", ""))
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                json.dump(d, open(path, "w"), separators=(",", ":"))
+                return b
+            except Exception as e:
+                print("   boundary fetch as %s failed (%s)" % (fmt, str(e)[:100]), flush=True)
+    if not os.path.exists(path):
+        raise RuntimeError("no boundary available for %s: server unreachable and no saved copy" % bcfg.get("name", "?"))
+    print("   using saved copy of %s" % bcfg.get("name", "boundary"), flush=True)
     return Boundary(json.load(open(path)), bcfg.get("name", ""))

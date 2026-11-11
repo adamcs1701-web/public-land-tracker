@@ -40,7 +40,7 @@ jobs:
             echo "=== $C $(date -u +%T) ===" | tee -a run.log
             python3 -u run.py --only "$C" 2>&1 | tee -a run.log
             [ "${PIPESTATUS[0]}" -ne 0 ] && FAILED="$FAILED $C"
-            git add -f data/parcels.json run.log
+            git add -f data/parcels.json run.log boundaries
             git diff --cached --quiet || git commit -q -m "Data refresh $C $(date -u +%F)"
             git stash -u -q || true
             for TRY in 1 2 3 4; do

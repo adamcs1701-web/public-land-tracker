@@ -36,7 +36,19 @@ for k, c in cfg["counties"].items():
 doc = dict(generated_at=d["generated_at"], example=False, sources=src, changes=[c for c in d.get("changes", [])][:300],
            appraiser_urls={k: v["appraiser_url"] for k, v in cfg["counties"].items()},
            packed=dict(cols=cols, dicts=dicts, rows=rows))
+geo = json.load(open(os.path.join(root, "app", "boundaries.json")))
+geo.pop("udb", None); geo["dev"] = []
+for k, c in cfg["counties"].items():          # development boundaries, outer rings, lightly thinned for drawing
+    bc = c.get("development_boundary")
+    fp = bc and os.path.join(root, bc["file"])
+    if fp and os.path.exists(fp):
+        for f in json.load(open(fp))["features"]:
+            g = f["geometry"]
+            for poly in ([g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"]):
+                ring = poly[0]
+                if len(ring) >= 4:
+                    geo["dev"].append([[round(x, 4), round(y, 4)] for x, y in ring])
 t = open(os.path.join(root, "app", "template.html")).read()
 s = json.dumps(doc, separators=(",", ":")).replace("</", "<\\/")
-open(sys.argv[1], "w").write(t.replace("__EXAMPLE__", s).replace("__GEO__", open(os.path.join(root, "app", "boundaries.json")).read()))
+open(sys.argv[1], "w").write(t.replace("__EXAMPLE__", s).replace("__GEO__", json.dumps(geo, separators=(",", ":"))))
 print("built %s: %d parcels, %.1f MB" % (sys.argv[1], len(parcels), os.path.getsize(sys.argv[1]) / 1e6))
