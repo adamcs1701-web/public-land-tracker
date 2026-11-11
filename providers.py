@@ -101,7 +101,7 @@ class ArcGISDorProvider(Provider):
                 return f.get("type", "")
         return ""
 
-    WINDOW = 100000
+    WINDOW = 50000
 
     def _clauses(self):
         codes = list(GOV_USE_CODES) + [LEASEHOLD_CODE]
@@ -132,14 +132,16 @@ class ArcGISDorProvider(Provider):
     def _window(self, lo, hi, clause):
         """Fetch one OBJECTID window; if the server truncates or rejects it, split it in half."""
         where = "OBJECTID BETWEEN %d AND %d AND %s AND %s" % (lo, hi, self._co_sql(), clause)
+        small = hi - lo < 2000
         try:
             data = _get_json(self.url + "/query", {
                 "where": where, "outFields": self.OUT, "returnGeometry": "false",
-                "returnCentroid": "true", "outSR": 4326, "f": "json"}, timeout=150)
+                "returnCentroid": "true", "outSR": 4326, "f": "json"},
+                retries=3 if small else 1, timeout=75)
         except RuntimeError:
-            if hi - lo < 2000:
+            if small:
                 raise
-            data = None
+            data = None      # slow or rejected: split instead of waiting on retries
         if data is not None and not data.get("exceededTransferLimit"):
             for ft in data.get("features", []):
                 yield self._normalize(ft)
@@ -152,9 +154,14 @@ class ArcGISDorProvider(Provider):
 
     def fetch(self):
         lo, hi = self._oid_span()
-        for clause in self._clauses():
+        print("   %s: record IDs %d-%d (%d rows to scan)" % (self.county_key, lo, hi, hi - lo + 1), flush=True)
+        for n, clause in enumerate(self._clauses(), 1):
+            t0, got = time.time(), 0
             for start in range(lo, hi + 1, self.WINDOW):
-                yield from self._window(start, min(start + self.WINDOW - 1, hi), clause)
+                for rec in self._window(start, min(start + self.WINDOW - 1, hi), clause):
+                    got += 1
+                    yield rec
+            print("   %s: pass %d of 2 done, %d rows, %.0fs" % (self.county_key, n, got, time.time() - t0), flush=True)
 
     def _normalize(self, ft):
         a = {k.upper(): v for k, v in ft["attributes"].items()}

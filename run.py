@@ -22,6 +22,8 @@ old = {key(r): r for r in prev["parcels"]}
 density = core.load_table(rel(cfg.get("zoning_density_table")), ("jurisdiction", "zoning_code"))
 surplus = core.load_table(rel(cfg.get("surplus_list")), ("county", "parcel_id"))
 
+# Zoning found in the last 60 days is reused; older answers are looked up again.
+zoning_recheck_after = (datetime.date.today() - datetime.timedelta(days=60)).isoformat()
 new, sources, failed = {}, [], []
 wanted = set(args.only.split(",")) if args.only else None
 for ckey, ccfg in cfg["counties"].items():
@@ -48,6 +50,11 @@ for ckey, ccfg in cfg["counties"].items():
             print("%-11s %d candidate parcels, looking up zoning..." % (ckey, len(recs)), flush=True)
 
             def add_zoning(rec):            # free feeds carry no zoning
+                prev_rec = old.get(ckey + "|" + rec["id"])
+                if (not rec["zoning"] and prev_rec and prev_rec.get("zoning") and prev_rec.get("lat") == rec["lat"]
+                        and prev_rec.get("last_seen", "") >= zoning_recheck_after):
+                    for f in ("zoning", "zoning_jurisdiction", "zoning_description"):   # reuse a recent answer
+                        rec[f] = prev_rec.get(f)
                 if not rec["zoning"] and rec["lat"] is not None and zsrc:
                     hit = core.zoning_lookup(rec["lat"], rec["lon"], zsrc)
                     if hit:
