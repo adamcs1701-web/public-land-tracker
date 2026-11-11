@@ -22,7 +22,14 @@
           "name": "FL statewide cadastral (DOR schema)",
           "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0"
         }
-      ]
+      ],
+      "development_boundary": {
+        "name": "Urban Development Boundary",
+        "url": "https://gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/17",
+        "file": "boundaries/miami_dade_udb.geojson",
+        "drop_outside": true,
+        "_note": "Parcels whose centre point falls outside this polygon are dropped. Refreshed from url on every run; the saved file is the fallback."
+      }
     },
     "broward": {
       "label": "Broward",

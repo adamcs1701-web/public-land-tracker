@@ -63,6 +63,7 @@ svg.map.drag{cursor:grabbing}
 svg.map .ctx{fill:var(--bg);stroke:var(--line);vector-effect:non-scaling-stroke;stroke-width:1}
 svg.map .cty{fill:var(--land);stroke:var(--muted);vector-effect:non-scaling-stroke;stroke-width:1.4}
 svg.map .plc{fill:var(--accent);fill-opacity:.05;stroke:var(--accent);stroke-opacity:.45;vector-effect:non-scaling-stroke;stroke-width:.8}
+svg.map .udb{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
 svg.map text{font-family:var(--body);fill:var(--muted);pointer-events:none;text-anchor:middle;paint-order:stroke;stroke:var(--land);stroke-linejoin:round}
 svg.map text.ctyl{font-family:var(--display);font-weight:600;letter-spacing:.08em;text-transform:uppercase;fill:var(--ink);fill-opacity:.55}
 svg.map circle.p{cursor:pointer;stroke:var(--surface);vector-effect:non-scaling-stroke;stroke-width:.8;fill-opacity:.85}
@@ -152,7 +153,7 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
         <div class="scale" id="scale"><span></span></div>
         <div class="tip" id="tip" hidden></div>
       </div>
-      <div class="legend"><span><i class="dot" style="background:var(--ripe)"></i>Ripe</span><span><i class="dot" style="background:var(--review)"></i>Needs review</span><span><i class="dot" style="background:var(--not)"></i>Not ripe</span><span>Larger dot, larger parcel</span></div>
+      <div class="legend"><span><i class="dot" style="background:var(--ripe)"></i>Ripe</span><span><i class="dot" style="background:var(--review)"></i>Needs review</span><span><i class="dot" style="background:var(--not)"></i>Not ripe</span><span>Larger dot, larger parcel</span><span><svg width="26" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="1.6" stroke-dasharray="6 4"/></svg> Urban Development Boundary</span></div>
       <p class="unk" style="margin:8px 0 0;font-size:12px">Drag to move, scroll or pinch to zoom. Lines are county and city limits from the Census Bureau; they run offshore, so this is not a coastline.</p>
     </div>
 
@@ -263,6 +264,7 @@ function buildBase(){const svg=$("map");svg.replaceChildren();labels=[];
   GEO.ctx.forEach(c=>sv("path",{class:"ctx",d:pathOf(c.polys)}));
   GEO.counties.forEach(c=>sv("path",{class:"cty",d:pathOf(c.polys),"fill-rule":"evenodd"}));
   GEO.places.forEach(p=>sv("path",{class:"plc",d:pathOf(p.polys)}));
+  if(GEO.udb)sv("path",{class:"udb",d:pathOf([GEO.udb])});
   gDots=sv("g",{});
   const CL={"Miami-Dade":[-80.62,25.62],"Broward":[-80.58,26.15],"Palm Beach":[-80.52,26.62]};
   GEO.counties.forEach(c=>{const q=CL[c.name];labels.push({el:sv("text",{class:"ctyl",x:PX(q[0]),y:PY(q[1])},null,c.name),px:12,min:0,max:1e9})});

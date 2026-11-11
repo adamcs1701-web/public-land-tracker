@@ -1,5 +1,5 @@
 """Source-independent logic: who owns it, what it is, and what changed."""
-import csv, os, re
+import csv, json, os, re
 import providers
 
 USE_LABELS = {80: "Vacant governmental", 81: "Military", 82: "Forest, park, recreation",
@@ -167,3 +167,49 @@ def zoning_lookup(lat, lon, sources, stats=None):
             if code not in (None, ""):
                 return s["jurisdiction"], str(code).strip(), (a.get((s.get("desc_field") or "").lower()) or None)
     return None
+
+
+def _in_ring(x, y, ring):
+    inside, n = False, len(ring)
+    for i in range(n):
+        x1, y1 = ring[i][0], ring[i][1]
+        x2, y2 = ring[(i + 1) % n][0], ring[(i + 1) % n][1]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            inside = not inside
+    return inside
+
+
+class Boundary:
+    """A development boundary (e.g. Miami-Dade's UDB) as lon/lat polygons, with a point test."""
+    def __init__(self, geojson, name=""):
+        self.name, self.polys = name, []
+        for f in geojson["features"]:
+            g = f["geometry"]
+            self.polys += [g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"]
+        if not self.polys:
+            raise ValueError("boundary has no polygons")
+
+    def contains(self, lon, lat):
+        if lon is None or lat is None:
+            return None
+        for poly in self.polys:          # inside the outer ring and not inside a hole
+            if _in_ring(lon, lat, poly[0]) and not any(_in_ring(lon, lat, h) for h in poly[1:]):
+                return True
+        return False
+
+
+def load_boundary(bcfg, base):
+    """Fresh copy from the county's server if reachable, else the saved file."""
+    if not bcfg:
+        return None
+    path = os.path.join(base, bcfg["file"])
+    if bcfg.get("url"):
+        try:
+            d = providers._get_json(bcfg["url"].rstrip("/") + "/query", {"where": "1=1", "outFields": "OBJECTID", "outSR": 4326,
+                                    "f": "geojson", "geometryPrecision": 5, "maxAllowableOffset": 0.0001}, retries=2, timeout=60)
+            b = Boundary(d, bcfg.get("name", ""))
+            json.dump(d, open(path, "w"), separators=(",", ":"))
+            return b
+        except Exception as e:
+            print("   boundary server unavailable, using saved copy (%s)" % str(e)[:100])
+    return Boundary(json.load(open(path)), bcfg.get("name", ""))

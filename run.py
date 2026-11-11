@@ -19,7 +19,10 @@ today = datetime.date.today().isoformat()
 prev = json.load(open(out_path)) if os.path.exists(out_path) else {"parcels": [], "changes": []}
 key = lambda r: r["county"] + "|" + r["id"]
 EXCLUDE = set(cfg.get("exclude_owner_levels", []))
-old = {key(r): r for r in prev["parcels"] if r.get("owner_level") not in EXCLUDE}
+def _still_in_scope(r):       # so a rule change is not reported as parcels leaving government hands
+    b = cfg["counties"].get(r["county"], {}).get("development_boundary") or {}
+    return r.get("owner_level") not in EXCLUDE and not (b.get("drop_outside") and r.get("inside_boundary") is False)
+old = {key(r): r for r in prev["parcels"] if _still_in_scope(r)}
 density = core.load_table(rel(cfg.get("zoning_density_table")), ("jurisdiction", "zoning_code"))
 surplus = core.load_table(rel(cfg.get("surplus_list")), ("county", "parcel_id"))
 
@@ -41,14 +44,23 @@ for ckey, ccfg in cfg["counties"].items():
             n_raw = n_kept = 0
             got = {}
             zsrc = (cfg.get("zoning_sources") or {}).get(ckey, [])
-            recs = []
+            bcfg = ccfg.get("development_boundary")
+            bound = core.load_boundary(bcfg, base)
+            recs, n_outside = [], 0
             for rec in prov.fetch():
                 n_raw += 1
                 if not core.owner_level(rec["owner"], rec["use_code"], rec["public_land_flag"], ccfg.get("owner_patterns", ()))[0]:
                     continue
                 if (rec["acres"] or 0) < cfg.get("min_acres", 0):
                     continue
+                if bound:
+                    rec["inside_boundary"] = bound.contains(rec["lon"], rec["lat"])
+                    if bcfg.get("drop_outside") and rec["inside_boundary"] is False:
+                        n_outside += 1
+                        continue
                 recs.append(rec)
+            if bound:
+                print("%-11s %d parcels outside the %s dropped" % (ckey, n_outside, bound.name), flush=True)
             print("%-11s %d candidate parcels, looking up zoning..." % (ckey, len(recs)), flush=True)
 
             def add_zoning(rec):            # free feeds carry no zoning

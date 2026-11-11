@@ -12,7 +12,7 @@ LEASEHOLD_CODE = 90                    # gov-owned land leased to a private part
 FIELDS = ["id", "county", "owner", "use_code", "acres", "buildings", "just_value",
           "land_value", "address", "city", "lat", "lon", "public_land_flag",
           "zoning", "zoning_category", "max_du_per_acre", "flood_zone", "roll_year",
-          "zoning_jurisdiction", "zoning_description"]
+          "zoning_jurisdiction", "zoning_description", "inside_boundary"]
 
 
 def blank():
