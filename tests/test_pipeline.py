@@ -39,6 +39,7 @@ assert L("PARKSIDE VILLAGE CONDO ASSN", 4) is None and L("WATERFORD PARKS LLC", 
 assert core.department_of("WATER AND SEWER DEPT", "MIAMI-DADE COUNTY") == "Water And Sewer Dept"
 assert core.department_of("111 NW 1ST ST STE 2460", "MIAMI-DADE COUNTY") is None
 assert core.department_of(None, "CITY OF MIAMI-DEPT OF P&D") == "Dept Of P&D"
+assert L("POMPANO BEACH COMMUNITY", 80) == "district" and L("NORTH SPRINGS IMPROVEMENT", 80) == "district" and L("AVENIR CDD", 80) == "district"
 assert L("SMITH JOHN", 1) is None
 assert L("COUNTRY CLUB ESTATES LLC", 10) is None                  # 'COUNTRY' must not match 'COUNTY'
 assert L("ACME LLC", 80) == "other"                               # coded governmental, unknown owner
