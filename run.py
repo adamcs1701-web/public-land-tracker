@@ -3,6 +3,7 @@
 Schedule it weekly (cron / GitHub Actions); each run rewrites the output file and
 appends to its change log."""
 import argparse, datetime, json, os, sys
+from concurrent.futures import ThreadPoolExecutor
 import core, providers
 
 p = argparse.ArgumentParser()
@@ -36,16 +37,25 @@ for ckey, ccfg in cfg["counties"].items():
             n_raw = n_kept = 0
             got = {}
             zsrc = (cfg.get("zoning_sources") or {}).get(ckey, [])
+            recs = []
             for rec in prov.fetch():
                 n_raw += 1
                 if not core.owner_level(rec["owner"], rec["use_code"], rec["public_land_flag"], ccfg.get("owner_patterns", ()))[0]:
                     continue
                 if (rec["acres"] or 0) < cfg.get("min_acres", 0):
                     continue
-                if not rec["zoning"] and rec["lat"] is not None and zsrc:   # free feeds carry no zoning
+                recs.append(rec)
+            print("%-11s %d candidate parcels, looking up zoning..." % (ckey, len(recs)), flush=True)
+
+            def add_zoning(rec):            # free feeds carry no zoning
+                if not rec["zoning"] and rec["lat"] is not None and zsrc:
                     hit = core.zoning_lookup(rec["lat"], rec["lon"], zsrc)
                     if hit:
                         rec["zoning_jurisdiction"], rec["zoning"], rec["zoning_description"] = hit
+                return rec
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                recs = list(pool.map(add_zoning, recs))
+            for rec in recs:
                 r = core.enrich(rec, ccfg, density, surplus)
                 if r:
                     r["provider"], r["last_seen"] = prov.name, today
