@@ -32,23 +32,29 @@ jobs:
         run: |
           git config user.name "refresh-bot"
           git config user.email "refresh-bot@users.noreply.github.com"
+          # Always work from the newest commit on main, whatever commit this job was started from.
+          sync() { git fetch -q origin main && git reset -q --hard FETCH_HEAD; }
           COUNTIES="${{ inputs.only }}"
           [ -z "$COUNTIES" ] && COUNTIES="miami-dade,broward,palm-beach"
           FAILED=""
-          : > run.log
+          KEEP="$RUNNER_TEMP/keep"
           for C in ${COUNTIES//,/ }; do
-            git pull -q --ff-only origin main || true      # start from the newest saved data
-            echo "=== $C $(date -u +%T) ===" | tee -a run.log
-            python3 -u run.py --only "$C" 2>&1 | tee -a run.log
-            [ "${PIPESTATUS[0]}" -ne 0 ] && FAILED="$FAILED $C"
-            python3 tools/build_site.py | tee -a run.log
-            git add -f data/parcels.json boundaries docs
-            git diff --cached --quiet || git commit -q -m "Data refresh $C $(date -u +%F)"
-            git stash -u -q || true
-            for TRY in 1 2 3 4; do
-              git pull -q --rebase origin main && git push -q && break
-              echo "push attempt $TRY failed, retrying"; sleep $((TRY * 7))
+            sync
+            echo "=== $C $(date -u +%T) ==="
+            python3 -u run.py --only "$C" || FAILED="$FAILED $C"
+            python3 tools/build_site.py
+            # Set this run's output aside, then lay it over the newest main and push. No merging of data files.
+            rm -rf "$KEEP" && mkdir -p "$KEEP/data" "$KEEP/docs"
+            cp data/parcels.json "$KEEP/data/" && cp docs/data.json docs/boundaries.json "$KEEP/docs/" && cp -r boundaries "$KEEP/"
+            SAVED=""
+            for TRY in 1 2 3 4 5; do
+              sync
+              cp "$KEEP/data/parcels.json" data/ && cp "$KEEP"/docs/* docs/ && cp -r "$KEEP/boundaries/." boundaries/
+              git add -f data/parcels.json boundaries docs
+              git diff --cached --quiet || git commit -q -m "Data refresh $C $(date -u +%F)"
+              if git push -q origin HEAD:main; then SAVED=1; break; fi
+              echo "save attempt $TRY failed, retrying"; sleep $((TRY * 7))
             done
-            git stash pop -q || true
+            [ -z "$SAVED" ] && { echo "COULD NOT SAVE $C"; FAILED="$FAILED $C(save)"; }
           done
-          if [ -n "$FAILED" ]; then echo "Failed counties:$FAILED"; exit 1; fi
+          if [ -n "$FAILED" ]; then echo "Failed:$FAILED"; exit 1; fi
