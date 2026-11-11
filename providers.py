@@ -155,12 +155,15 @@ class ArcGISDorProvider(Provider):
     def fetch(self):
         lo, hi = self._oid_span()
         print("   %s: record IDs %d-%d (%d rows to scan)" % (self.county_key, lo, hi, hi - lo + 1), flush=True)
+        from concurrent.futures import ThreadPoolExecutor
+        wins = [(s, min(s + self.WINDOW - 1, hi)) for s in range(lo, hi + 1, self.WINDOW)]
         for n, clause in enumerate(self._clauses(), 1):
             t0, got = time.time(), 0
-            for start in range(lo, hi + 1, self.WINDOW):
-                for rec in self._window(start, min(start + self.WINDOW - 1, hi), clause):
-                    got += 1
-                    yield rec
+            with ThreadPoolExecutor(max_workers=4) as pool:      # server is latency-bound, so overlap requests
+                for chunk in pool.map(lambda w: list(self._window(w[0], w[1], clause)), wins):
+                    for rec in chunk:
+                        got += 1
+                        yield rec
             print("   %s: pass %d of 2 done, %d rows, %.0fs" % (self.county_key, n, got, time.time() - t0), flush=True)
 
     def _normalize(self, ft):
