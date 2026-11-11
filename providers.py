@@ -72,9 +72,14 @@ class ArcGISDorProvider(Provider):
     governmental but were coded something else."""
     OUT = ("PARCEL_ID,CO_NO,OWN_NAME,DOR_UC,LND_SQFOOT,NO_BULDNG,JV,LND_VAL,"
            "PHY_ADDR1,PHY_CITY,PUBLIC_LND,ASMNT_YR")
-    NAME_TERMS = ["UNITED STATES", "STATE OF FLORIDA", "TIITF", "CITY OF ", "TOWN OF ",
-                  "VILLAGE OF ", "SCHOOL BOARD", "HOUSING AUTH", "WATER MANAGEMENT",
-                  "REDEVELOPMENT AGENCY", "DEPT OF TRANSPORTATION"]
+    # Server-side net for government owners whose parcels are NOT coded 80-89.
+    # Deliberately loose: core.owner_level() makes the final call on each row.
+    NAME_TERMS = ["UNITED STATES", "STATE OF FL", "TIITF", "INTERNAL IMPROVEMENT", "CITY OF ", "TOWN OF ",
+                  "VILLAGE OF ", "SCHOOL BOARD", "SCHOOL DIST", "PUBLIC INSTRUCTION", "HOUSING AUTH",
+                  "WATER MANAGEMENT", "SFWMD", "REDEVELOPMENT", " CRA", "DEPT OF TRANSPORTATION",
+                  "DEPARTMENT OF TRANSPORTATION", "FDOT", "EXPRESSWAY", "TRANSPORTATION AUTH",
+                  "HOSPITAL DIST", "HEALTH CARE DIST", "DRAINAGE DIST", "IMPROVEMENT DIST",
+                  "PORT AUTH", "AIRPORT AUTH"]
 
     def __init__(self, *a):
         super().__init__(*a)

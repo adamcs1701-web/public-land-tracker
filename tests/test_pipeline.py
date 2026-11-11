@@ -12,6 +12,8 @@ assert L("CITY OF HIALEAH", 10) == "municipal"                    # miscoded use
 assert L("TIITF/STATE OF FLORIDA", 87) == "state"
 assert L("UNITED STATES OF AMERICA", 88) == "federal"
 assert L("SOUTH FLORIDA WATER MANAGEMENT DISTRICT", 80) == "district"
+assert L("HOLLYWOOD CRA", 10) == "district" and L("DELRAY BEACH COMMUNITY REDEVELOPMENT AGY", 10) == "district"
+assert L("CRANE HOLDINGS LLC", 10) is None
 assert L("SMITH JOHN", 1) is None
 assert L("COUNTRY CLUB ESTATES LLC", 10) is None                  # 'COUNTRY' must not match 'COUNTY'
 assert L("ACME LLC", 80) == "other"                               # coded governmental, unknown owner
