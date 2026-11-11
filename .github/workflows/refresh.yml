@@ -37,11 +37,12 @@ jobs:
           FAILED=""
           : > run.log
           for C in ${COUNTIES//,/ }; do
+            git pull -q --ff-only origin main || true      # start from the newest saved data
             echo "=== $C $(date -u +%T) ===" | tee -a run.log
             python3 -u run.py --only "$C" 2>&1 | tee -a run.log
             [ "${PIPESTATUS[0]}" -ne 0 ] && FAILED="$FAILED $C"
             python3 tools/build_site.py | tee -a run.log
-            git add -f data/parcels.json run.log boundaries docs
+            git add -f data/parcels.json boundaries docs
             git diff --cached --quiet || git commit -q -m "Data refresh $C $(date -u +%F)"
             git stash -u -q || true
             for TRY in 1 2 3 4; do
