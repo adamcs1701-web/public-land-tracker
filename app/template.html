@@ -5,15 +5,15 @@
 /* Layout: criteria rail | tall tri-county plot | ranked results. Stacks to one column on phones. */
 :root{
   --bg:#f1f5f4; --surface:#ffffff; --ink:#13211f; --muted:#586a66; --line:#d3ddda; --accent:#0c6b62; --accent-ink:#ffffff;
-  --ripe:#1c7f45; --review:#a86a12; --not:#8b9995; --ripe-bg:#dff3e7; --review-bg:#f8ecd2; --not-bg:#e6ecea;
+  --land:#fbfcfb; --water:#dfe9ee; --ripe:#1c7f45; --review:#a86a12; --not:#8b9995; --ripe-bg:#dff3e7; --review-bg:#f8ecd2; --not-bg:#e6ecea;
   --display:"Space Grotesk","IBM Plex Sans",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#0e1615; --surface:#16211f; --ink:#e3ecea; --muted:#94a5a1; --line:#2a3937; --accent:#56c4b7; --accent-ink:#06211e;
-  --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark } }
+  --land:#1a2624; --water:#0c1418; --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#0e1615; --surface:#16211f; --ink:#e3ecea; --muted:#94a5a1; --line:#2a3937; --accent:#56c4b7; --accent-ink:#06211e;
-  --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark }
+  --land:#1a2624; --water:#0c1418; --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark }
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--body);padding-block:20px 48px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -56,13 +56,25 @@ input[type=number],select{font:14px var(--body);padding:6px 8px;border:1px solid
 .tally b{display:block;font:600 22px/1.1 var(--display);font-variant-numeric:tabular-nums}
 .t-ripe{background:var(--ripe-bg);color:var(--ripe)}.t-review{background:var(--review-bg);color:var(--review)}.t-not{background:var(--not-bg);color:var(--muted)}
 .tally span{font-size:12px}
-svg.map{width:100%;height:auto;display:block;background:var(--bg);border-radius:6px;border:1px solid var(--line)}
-svg.map text{font-family:var(--mono);font-size:10px;fill:var(--muted)}
-svg.map .grat{stroke:var(--line);stroke-width:1;fill:none}
-svg.map .city{fill:var(--ink)} svg.map .cityt{fill:var(--ink);font-family:var(--body);font-size:11px;font-weight:500}
-svg.map circle.p{cursor:pointer;stroke:var(--surface);stroke-width:.8;fill-opacity:.8}
-svg.map circle.p.ripe{fill:var(--ripe)} svg.map circle.p.review{fill:var(--review)} svg.map circle.p.not{fill:var(--not);fill-opacity:.45}
+.mapbox{position:relative;height:560px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--water)}
+@media (max-width:700px){.mapbox{height:440px}}
+svg.map{width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none}
+svg.map.drag{cursor:grabbing}
+svg.map .ctx{fill:var(--bg);stroke:var(--line);vector-effect:non-scaling-stroke;stroke-width:1}
+svg.map .cty{fill:var(--land);stroke:var(--muted);vector-effect:non-scaling-stroke;stroke-width:1.4}
+svg.map .plc{fill:var(--accent);fill-opacity:.05;stroke:var(--accent);stroke-opacity:.45;vector-effect:non-scaling-stroke;stroke-width:.8}
+svg.map text{font-family:var(--body);fill:var(--muted);pointer-events:none;text-anchor:middle;paint-order:stroke;stroke:var(--land);stroke-linejoin:round}
+svg.map text.ctyl{font-family:var(--display);font-weight:600;letter-spacing:.08em;text-transform:uppercase;fill:var(--ink);fill-opacity:.55}
+svg.map circle.p{cursor:pointer;stroke:var(--surface);vector-effect:non-scaling-stroke;stroke-width:.8;fill-opacity:.85}
+svg.map circle.p.ripe{fill:var(--ripe)} svg.map circle.p.review{fill:var(--review)} svg.map circle.p.not{fill:var(--not);fill-opacity:.5}
 svg.map circle.p.sel{stroke:var(--ink);stroke-width:2.5;fill-opacity:1}
+.mapctl{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px}
+.mapctl button{width:32px;height:32px;padding:0;font-size:17px;line-height:1}
+.mapctl button.wide{width:auto;padding:0 8px;font-size:12px}
+.scale{position:absolute;left:8px;bottom:8px;font:11px var(--mono);color:var(--muted);border:1px solid var(--muted);border-top:0;height:7px;display:flex;align-items:flex-end;justify-content:center;pointer-events:none}
+.scale span{transform:translateY(-8px);white-space:nowrap}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.35;padding:6px 8px;border-radius:5px;max-width:230px;z-index:2}
+.tip b{font-family:var(--mono);font-weight:500}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
 .results{display:flex;flex-direction:column;gap:16px;min-width:0}
@@ -134,8 +146,14 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
 
     <div class="panel">
       <div class="tblhead"><h2>Where they are</h2><span class="lab" id="mapn"></span></div>
-      <svg class="map" id="map" role="img" aria-label="Parcel locations plotted by latitude and longitude"></svg>
+      <div class="mapbox" id="mapbox">
+        <svg class="map" id="map" role="img" aria-label="Map of parcels with county and city limits"></svg>
+        <div class="mapctl"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">&minus;</button><button type="button" id="zfit" class="wide" aria-label="Fit all parcels in view">Fit</button></div>
+        <div class="scale" id="scale"><span></span></div>
+        <div class="tip" id="tip" hidden></div>
+      </div>
       <div class="legend"><span><i class="dot" style="background:var(--ripe)"></i>Ripe</span><span><i class="dot" style="background:var(--review)"></i>Needs review</span><span><i class="dot" style="background:var(--not)"></i>Not ripe</span><span>Larger dot, larger parcel</span></div>
+      <p class="unk" style="margin:8px 0 0;font-size:12px">Drag to move, scroll or pinch to zoom. Lines are county and city limits from the Census Bureau; they run offshore, so this is not a coastline.</p>
     </div>
 
     <div class="results">
@@ -153,6 +171,7 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<script id="geo" type="application/json">__GEO__</script>
 <script id="example" type="application/json">__EXAMPLE__</script>
 <script>
 (function(){
@@ -229,20 +248,62 @@ function render(){
   if(!rows.some(r=>key(r.p)===selKey))selKey=rows.length?key(rows[0].p):null;
   renderMap();renderTable();renderDetail()}
 
+// ---- Map: fixed projection, static boundary layers, zoomable viewBox ----
+const GEO=JSON.parse($("geo").textContent),NS="http://www.w3.org/2000/svg";
+const M={lo0:-80.95,lo1:-79.95,la0:25.08,la1:27.03,W:1000};M.k=Math.cos((M.la0+M.la1)/2*Math.PI/180);M.H=M.W*(M.la1-M.la0)/((M.lo1-M.lo0)*M.k);
+const PX=lo=>(lo-M.lo0)/(M.lo1-M.lo0)*M.W,PY=la=>(M.la1-la)/(M.la1-M.la0)*M.H;
+let view=null,home=null,gDots=null,labels=[],fitted=false;
+function sv(tag,attrs,parent,txt){const e=document.createElementNS(NS,tag);for(const q in attrs)e.setAttribute(q,attrs[q]);if(txt!=null)e.textContent=txt;(parent||$("map")).appendChild(e);return e}
+function pathOf(polys){return polys.map(p=>p.map(r=>"M"+r.map(c=>PX(c[0]).toFixed(1)+" "+PY(c[1]).toFixed(1)).join("L")+"Z").join("")).join("")}
+function buildBase(){const svg=$("map");svg.replaceChildren();labels=[];
+  GEO.ctx.forEach(c=>sv("path",{class:"ctx",d:pathOf(c.polys)}));
+  GEO.counties.forEach(c=>sv("path",{class:"cty",d:pathOf(c.polys),"fill-rule":"evenodd"}));
+  GEO.places.forEach(p=>sv("path",{class:"plc",d:pathOf(p.polys)}));
+  gDots=sv("g",{});
+  const CL={"Miami-Dade":[-80.62,25.62],"Broward":[-80.58,26.15],"Palm Beach":[-80.52,26.62]};
+  GEO.counties.forEach(c=>{const q=CL[c.name];labels.push({el:sv("text",{class:"ctyl",x:PX(q[0]),y:PY(q[1])},null,c.name),px:12,min:0,max:1e9})});
+  GEO.places.forEach(p=>labels.push({el:sv("text",{x:PX(p.c[0]),y:PY(p.c[1])},null,p.name),px:11,min:p.w/(M.lo1-M.lo0)*M.W,place:true}))}
+function boxSize(){const b=$("mapbox");return [b.clientWidth||340,b.clientHeight||560]}
+function fitTo(x0,y0,x1,y1){const [cw,ch]=boxSize(),ar=cw/ch;let w=Math.max(x1-x0,20),h=Math.max(y1-y0,20);const cx=(x0+x1)/2,cy=(y0+y1)/2;if(w/h<ar)w=h*ar;else h=w/ar;w*=1.12;h*=1.12;return {x:cx-w/2,y:cy-h/2,w,h}}
+function applyView(){if(!view)return;const [cw,ch]=boxSize();view.h=view.w*ch/cw;const u=view.w/cw; // u = map units per screen pixel
+  $("map").setAttribute("viewBox",[view.x,view.y,view.w,view.h].map(n=>n.toFixed(2)).join(" "));
+  labels.forEach(l=>{const show=!l.place||(l.min/u>64);l.el.style.display=show?"":"none";if(show){l.el.setAttribute("font-size",(l.px*u).toFixed(2));l.el.setAttribute("stroke-width",(3*u).toFixed(2))}});
+  for(const c of gDots.children)c.setAttribute("r",(c._r*u).toFixed(2));
+  const mi=u*(M.lo1-M.lo0)/M.W*M.k*69.17; let pick=.1;for(const s of [.1,.25,.5,1,2,5,10,20,50])if(s/mi<=110)pick=s;
+  $("scale").style.width=Math.round(pick/mi)+"px";$("scale").firstChild.textContent=pick+" mi"}
+function zoomAt(f,sx,sy){const [cw,ch]=boxSize();if(sx==null){sx=cw/2;sy=ch/2}const nw=Math.min(M.W*2.2,Math.max(1.2,view.w*f)),r=nw/view.w,u=view.w/cw;
+  view.x+=sx*u*(1-r);view.y+=sy*u*(1-r);view.w=nw;applyView()}
 function renderMap(){
-  const svg=$("map"),NS="http://www.w3.org/2000/svg",pts=rows.filter(r=>r.p.lat!=null&&r.p.lon!=null);
-  let la0=Math.min(25.5,...pts.map(r=>r.p.lat)),la1=Math.max(26.9,...pts.map(r=>r.p.lat)),lo0=Math.min(-80.5,...pts.map(r=>r.p.lon)),lo1=Math.max(-80.0,...pts.map(r=>r.p.lon));
-  const pad=.06;la0-=pad;la1+=pad;lo0-=pad;lo1+=pad; const k=Math.cos((la0+la1)/2*Math.PI/180),W=340,H=Math.round(W*(la1-la0)/((lo1-lo0)*k));
-  const X=lo=>(lo-lo0)/(lo1-lo0)*W,Y=la=>(la1-la)/(la1-la0)*H; svg.setAttribute("viewBox","0 0 "+W+" "+H); svg.replaceChildren();
-  const mk=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const q in a)e.setAttribute(q,a[q]);if(txt)e.textContent=txt;svg.appendChild(e);return e};
-  for(let la=Math.ceil(la0*4)/4;la<la1;la+=.25){mk("line",{class:"grat",x1:0,x2:W,y1:Y(la),y2:Y(la)});mk("text",{x:4,y:Y(la)-3},la.toFixed(2)+"°N")}
-  for(let lo=Math.ceil(lo0*4)/4;lo<lo1;lo+=.25){mk("line",{class:"grat",y1:0,y2:H,x1:X(lo),x2:X(lo)});mk("text",{x:X(lo)+3,y:H-5},Math.abs(lo).toFixed(2)+"°W")}
-  const draw=pts.slice().sort((a,b)=>(a.a.tier==="not"?0:1)-(b.a.tier==="not"?0:1)).slice(-4000);
-  draw.forEach(r=>{const c=mk("circle",{class:"p "+r.a.tier+(key(r.p)===selKey?" sel":""),cx:X(r.p.lon).toFixed(1),cy:Y(r.p.lat).toFixed(1),r:Math.max(2.5,Math.min(9,2+Math.sqrt(r.p.acres||0)*1.3)).toFixed(1),tabindex:0});
-    c.appendChild(mk("title",{},r.p.id+" · "+r.p.owner)); const pick=()=>{selKey=key(r.p);renderMap();renderTable();renderDetail()};c.addEventListener("click",pick);c.addEventListener("keydown",e=>{if(e.key==="Enter")pick()})});
-  CITIES.forEach(([n,la,lo])=>{if(la>la0&&la<la1&&lo>lo0&&lo<lo1){mk("rect",{class:"city",x:X(lo)-2.5,y:Y(la)-2.5,width:5,height:5});mk("text",{class:"cityt",x:X(lo)-6,y:Y(la)+4,"text-anchor":"end"},n)}});
-  $("mapn").textContent=fmt(pts.length)+" plotted"}
+  if(!gDots)buildBase();
+  const pts=rows.filter(r=>r.p.lat!=null&&r.p.lon!=null&&r.p.lat>M.la0&&r.p.lat<M.la1&&r.p.lon>M.lo0&&r.p.lon<M.lo1);
+  const rank={not:0,review:1,ripe:2},draw=pts.slice().sort((a,b)=>rank[a.a.tier]-rank[b.a.tier]).slice(-5000);
+  gDots.replaceChildren();
+  draw.forEach(r=>{const c=sv("circle",{class:"p "+r.a.tier+(key(r.p)===selKey?" sel":""),cx:PX(r.p.lon).toFixed(1),cy:PY(r.p.lat).toFixed(1),tabindex:0},gDots);
+    c._r=Math.max(3,Math.min(10,2.5+Math.sqrt(r.p.acres||0)*1.2));c._row=r});
+  if(!fitted){const xs=pts.map(r=>PX(r.p.lon)),ys=pts.map(r=>PY(r.p.lat));home=pts.length?fitTo(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)):fitTo(0,0,M.W,M.H);view=Object.assign({},home);fitted=true}
+  applyView();
+  $("mapn").textContent=draw.length<pts.length?"Top "+fmt(draw.length)+" of "+fmt(pts.length)+" shown":fmt(pts.length)+" plotted"}
+function pickDot(c){selKey=key(c._row.p);for(const d of gDots.children)d.classList.toggle("sel",d===c);renderTable();renderDetail()}
+(function wireMap(){const svg=$("map"),tip=$("tip"),ptrs=new Map();let moved=0,pinch=0;
+  svg.addEventListener("wheel",e=>{e.preventDefault();const b=svg.getBoundingClientRect();zoomAt(e.deltaY>0?1.25:.8,e.clientX-b.left,e.clientY-b.top)},{passive:false});
+  svg.addEventListener("pointerdown",e=>{ptrs.set(e.pointerId,[e.clientX,e.clientY]);moved=0;pinch=0;tip.hidden=true});
+  svg.addEventListener("pointermove",e=>{const prev=ptrs.get(e.pointerId);
+    if(!prev){const c=e.target;if(c._row&&e.pointerType!=="touch"){const p=c._row.p,b=$("mapbox").getBoundingClientRect();tip.replaceChildren(el("b",{text:p.id}),el("div",{text:p.owner}),el("div",{text:(p.acres!=null?fmt(p.acres,2)+" acres":"size unknown")+(p.zoning?" · "+p.zoning:"")}));tip.hidden=false;
+        tip.style.left=Math.min(e.clientX-b.left+12,b.width-240>0?b.width-200:0)+"px";tip.style.top=(e.clientY-b.top+14)+"px"}else tip.hidden=true;return}
+    const [cw]=boxSize(),u=view.w/cw;
+    if(ptrs.size===2){ptrs.set(e.pointerId,[e.clientX,e.clientY]);const [a,b2]=[...ptrs.values()],d=Math.hypot(a[0]-b2[0],a[1]-b2[1]),bb=svg.getBoundingClientRect();if(pinch)zoomAt(pinch/d,(a[0]+b2[0])/2-bb.left,(a[1]+b2[1])/2-bb.top);pinch=d;moved=9;return}
+    const dx=e.clientX-prev[0],dy=e.clientY-prev[1];moved+=Math.abs(dx)+Math.abs(dy);
+    if(moved>4){if(!svg.hasPointerCapture(e.pointerId)){try{svg.setPointerCapture(e.pointerId)}catch(_){}}svg.classList.add("drag");view.x-=dx*u;view.y-=dy*u;applyView()}
+    ptrs.set(e.pointerId,[e.clientX,e.clientY])});
+  const up=e=>{const had=ptrs.delete(e.pointerId);svg.classList.remove("drag");pinch=0;if(had&&moved<=4){const c=document.elementFromPoint(e.clientX,e.clientY);if(c&&c._row)pickDot(c)}};
+  svg.addEventListener("pointerup",up);svg.addEventListener("pointercancel",e=>{ptrs.delete(e.pointerId);svg.classList.remove("drag")});
+  svg.addEventListener("pointerleave",()=>{tip.hidden=true});
+  svg.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target._row)pickDot(e.target)});
+  $("zin").addEventListener("click",()=>zoomAt(.6));$("zout").addEventListener("click",()=>zoomAt(1.6));
+  $("zfit").addEventListener("click",()=>{fitted=false;renderMap()});
+  window.addEventListener("resize",applyView)})();
 
+function focusSel(){const r=rows.find(r=>key(r.p)===selKey);if(!r||r.p.lat==null||!view)return;const x=PX(r.p.lon),y=PY(r.p.lat);if(x<view.x||x>view.x+view.w||y<view.y||y>view.y+view.h){view.x=x-view.w/2;view.y=y-view.h/2;applyView()}}
 const COLS=[["","Fit",null],["score","Score","num"],["county","County"],["id","Parcel"],["owner","Owner"],["use","Recorded use"],["acres","Acres","num"],["zoning","Zoning"],["du","Units/ac","num"],["units","Est. units","num"],["jv","Value","num"]];
 function shown(){const m=$("show").value;return rows.filter(r=>m==="all"||(m==="ripe"?r.a.tier==="ripe":r.a.tier!=="not"))}
 function renderTable(){
@@ -251,7 +312,7 @@ function renderTable(){
   $("tbody").replaceChildren(...list.slice(0,cap).map(({p,a})=>{const tr=el("tr",{class:key(p)===selKey?"sel":""},[
     el("td",null,[el("span",{class:"pill "+a.tier,text:TL[a.tier]})]),el("td",{class:"num",text:a.score}),el("td",{text:labelOf(p.county)}),el("td",{class:"mono",text:p.id}),el("td",{class:"own",text:p.owner}),el("td",{text:p.use_label||""}),
     el("td",{class:"num",text:fmt(p.acres,2)}),el("td",null,[p.zoning?p.zoning:u()]),el("td",{class:"num"},[p.max_du_per_acre!=null?fmt(p.max_du_per_acre):u()]),el("td",{class:"num"},[p.est_units!=null?fmt(p.est_units):u()]),el("td",{class:"num",text:money(p.just_value)})]);
-    tr.addEventListener("click",()=>{selKey=key(p);renderMap();renderTable();renderDetail()});return tr}));
+    tr.addEventListener("click",()=>{selKey=key(p);renderMap();renderTable();renderDetail();focusSel()});return tr}));
   $("tblTitle").textContent=fmt(list.length)+" parcels";
   $("more").textContent=list.length>cap?"Showing the top "+cap+". Export the list to get all "+fmt(list.length)+".":list.length?"":"No parcels match. Loosen a criterion on the left."}
 function labelOf(c){const s=(data.sources||[]).find(s=>s.county===c);return s?s.label:c}
@@ -276,7 +337,7 @@ $("csv").addEventListener("click",async()=>{const text=csvText();let dl=null;try
   if(dl){try{await dl.save({filename:"public-land-"+(data.generated_at||"list")+".csv",data:text});toast("List saved");return}catch(e){if(e&&e.code==="declined")return}}
   $("copyBox").hidden=false;$("copyTa").value=text;$("copyTa").select();try{await navigator.clipboard.writeText(text);toast("List copied to clipboard")}catch(e){}});
 
-function setData(d,remember){data=d;selKey=null;writeCrit();readCrit();renderSources();renderChanges();render();if(remember){try{localStorage.setItem("plt_data",JSON.stringify(d))}catch(e){try{localStorage.removeItem("plt_data")}catch(_){ }}}}
+function setData(d,remember){data=d;selKey=null;fitted=false;writeCrit();readCrit();renderSources();renderChanges();render();if(remember){try{localStorage.setItem("plt_data",JSON.stringify(d))}catch(e){try{localStorage.removeItem("plt_data")}catch(_){ }}}}
 $("loadBtn").addEventListener("click",()=>$("file").click());
 $("file").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();
   fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!d||!Array.isArray(d.parcels)||(d.parcels[0]&&!("owner" in d.parcels[0])))throw 0;setData(d,true);toast("Loaded "+fmt(d.parcels.length)+" parcels from "+f.name)}
