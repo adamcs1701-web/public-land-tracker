@@ -1,15 +1,9 @@
-=== broward 20:07:28 ===
-   broward: record IDs 634838-1423661 (788824 rows to scan)
-   broward: pass 1 of 2 done, 4990 rows, 607s
-   broward: pass 2 of 2 done, 16001 rows, 1306s
-broward     15978 candidate parcels, looking up zoning...
-broward     FL statewide cadastral (DOR schema)     20991 fetched,  12189 government parcels kept,    655 with zoning
-wrote /home/runner/work/public-land-tracker/public-land-tracker/data/parcels.json: 18086 parcels, 12189 new changes
-=== palm-beach 20:43:58 ===
-   palm-beach: record IDs 7316438-8008721 (692284 rows to scan)
-   palm-beach: pass 1 of 2 done, 9448 rows, 182s
-   palm-beach: pass 2 of 2 done, 2734 rows, 255s
-palm-beach  10218 candidate parcels, looking up zoning...
-palm-beach  FL statewide cadastral (DOR schema)     12182 fetched,   9128 government parcels kept,    165 with zoning
-   zoning layer skipped (West Palm Beach): request failed after 2 tries: https://wpbgisportal.wpb.org/server/rest/services/Planning/Zoning_/FeatureServer/0/query?g
-wrote /home/runner/work/public-land-tracker/public-land-tracker/data/parcels.json: 27214 parcels, 9128 new changes
+=== miami-dade 21:06:55 ===
+   miami-dade: record IDs 5716324-6313160 (596837 rows to scan)
+   miami-dade: pass 1 of 2 done, 24275 rows, 85s
+   miami-dade: pass 2 of 2 done, 591103 rows, 1527s
+miami-dade  33887 parcels outside the Urban Development Boundary dropped
+miami-dade  12897 candidate parcels, looking up zoning...
+miami-dade  FL statewide cadastral (DOR schema)    615378 fetched,   6118 government parcels kept,   2363 with zoning
+   zoning layer skipped (City of Miami): request failed after 2 tries: https://gis.miami.gov/gis/rest/services/Zoning/ZoningMiami21/MapServer/5/query?geometry=-8
+wrote /home/runner/work/public-land-tracker/public-land-tracker/data/parcels.json: 27433 parcels, 586 new changes
