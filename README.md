@@ -4,6 +4,14 @@ Pulls government-owned parcels for Miami-Dade, Broward and Palm Beach, tags who 
 each one, logs what changed since the last run, and writes `data/parcels.json` for
 the tracker page ("Load data file").
 
+## The site
+
+The tracker is served by GitHub Pages from the `docs/` folder:
+https://adamcs1701-web.github.io/public-land-tracker/
+
+`docs/index.html` is the page. `docs/data.json` and `docs/boundaries.json` are rebuilt by
+`tools/build_site.py` after every refresh, so the site updates itself.
+
 ## Run it
 
     python3 run.py                 # all counties
