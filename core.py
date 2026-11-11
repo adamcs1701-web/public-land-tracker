@@ -75,7 +75,7 @@ DEPT_RX = re.compile(r"DEP(T|ARTMENT)\b|DIVISION|\bDIV\b|PARKS?\b|RECREATION|WAT
 def department_of(line2, owner=""):
     """The holding department, when the tax roll puts it on the owner's first address line
     ("MIAMI-DADE COUNTY" / "WATER AND SEWER DEPT") or after a slash or dash in the name."""
-    s = (line2 or "").strip().upper()
+    s = re.sub(r"\s*\b(P ?O ?BOX|SUITE|STE|ROOM|RM|FLOOR|FL)\b.*$|\s+\d.*$", "", (line2 or "").strip().upper()).strip()
     if s and not re.match(r"^(\d|P ?O ?BOX|C/O|%|ATTN)", s) and DEPT_RX.search(s):
         return s.title()
     m = re.search(r"[/%-]\s*(.+)$", (owner or "").upper())
