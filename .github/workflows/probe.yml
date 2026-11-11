@@ -1,0 +1,14 @@
+name: Probe a data layer
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Layer URL"
+        required: true
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -u tools/probe.py "${{ inputs.url }}"
