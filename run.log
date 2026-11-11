@@ -1,4 +1,7 @@
-miami-dade  FL statewide cadastral (DOR schema) FAILED: request failed after 3 tries: https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0/query?where=CO_NO%3D23+AND+DOR_UC+IN+%28%27080%27%2C%2780%27%2C%27081%27%2C%2781%27%2C%27 (ArcGIS error: {'code': 400, 'message': 'Cannot perform query. Invalid query parameters.', 'details': ['Unable to perform query. Please check your parameters.']})
-broward     FL statewide cadastral (DOR schema) FAILED: request failed after 3 tries: https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0/query?where=CO_NO%3D16+AND+DOR_UC+IN+%28%27080%27%2C%2780%27%2C%27081%27%2C%2781%27%2C%27 (ArcGIS error: {'code': 400, 'message': 'Cannot perform query. Invalid query parameters.', 'details': ['Unable to perform query. Please check your parameters.']})
-palm-beach  FL statewide cadastral (DOR schema) FAILED: request failed after 3 tries: https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0/query?where=CO_NO%3D60+AND+DOR_UC+IN+%28%27080%27%2C%2780%27%2C%27081%27%2C%2781%27%2C%27 (ArcGIS error: {'code': 400, 'message': 'Cannot perform query. Invalid query parameters.', 'details': ['Unable to perform query. Please check your parameters.']})
-wrote /home/runner/work/public-land-tracker/public-land-tracker/data/parcels.json: 0 parcels, 0 new changes, FAILED: miami-dade,broward,palm-beach
+=== miami-dade 19:30:28 ===
+   miami-dade: record IDs 5716324-6313160 (596837 rows to scan)
+   miami-dade: pass 1 of 2 done, 24275 rows, 69s
+   miami-dade: pass 2 of 2 done, 1923 rows, 59s
+miami-dade  23790 candidate parcels, looking up zoning...
+miami-dade  FL statewide cadastral (DOR schema)     26198 fetched,  22291 government parcels kept,  13809 with zoning
+wrote /home/runner/work/public-land-tracker/public-land-tracker/data/parcels.json: 22291 parcels, 0 new changes
