@@ -1,7 +1,7 @@
-=== miami-dade 19:30:28 ===
-   miami-dade: record IDs 5716324-6313160 (596837 rows to scan)
-   miami-dade: pass 1 of 2 done, 24275 rows, 69s
-   miami-dade: pass 2 of 2 done, 1923 rows, 59s
-miami-dade  23790 candidate parcels, looking up zoning...
-miami-dade  FL statewide cadastral (DOR schema)     26198 fetched,  22291 government parcels kept,  13809 with zoning
-wrote /home/runner/work/public-land-tracker/public-land-tracker/data/parcels.json: 22291 parcels, 0 new changes
+=== broward 20:07:28 ===
+   broward: record IDs 634838-1423661 (788824 rows to scan)
+   broward: pass 1 of 2 done, 4990 rows, 607s
+   broward: pass 2 of 2 done, 16001 rows, 1306s
+broward     15978 candidate parcels, looking up zoning...
+broward     FL statewide cadastral (DOR schema)     20991 fetched,  12189 government parcels kept,    655 with zoning
+wrote /home/runner/work/public-land-tracker/public-land-tracker/data/parcels.json: 18086 parcels, 12189 new changes
