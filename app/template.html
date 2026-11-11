@@ -66,7 +66,7 @@ svg.map .plc{fill:var(--accent);fill-opacity:.05;stroke:var(--accent);stroke-opa
 svg.map text{font-family:var(--body);fill:var(--muted);pointer-events:none;text-anchor:middle;paint-order:stroke;stroke:var(--land);stroke-linejoin:round}
 svg.map text.ctyl{font-family:var(--display);font-weight:600;letter-spacing:.08em;text-transform:uppercase;fill:var(--ink);fill-opacity:.55}
 svg.map circle.p{cursor:pointer;stroke:var(--surface);vector-effect:non-scaling-stroke;stroke-width:.8;fill-opacity:.85}
-svg.map circle.p.ripe{fill:var(--ripe)} svg.map circle.p.review{fill:var(--review)} svg.map circle.p.not{fill:var(--not);fill-opacity:.5}
+svg.map circle.p.ripe{fill:var(--ripe)} svg.map circle.p.review{fill:var(--review);fill-opacity:.6} svg.map circle.p.not{fill:var(--not);fill-opacity:.5}
 svg.map circle.p.sel{stroke:var(--ink);stroke-width:2.5;fill-opacity:1}
 .mapctl{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px}
 .mapctl button{width:32px;height:32px;padding:0;font-size:17px;line-height:1}
@@ -113,10 +113,10 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
     <div class="actions">
       <input type="file" id="file" accept=".json,application/json" hidden>
       <button class="primary" id="loadBtn">Load data file</button>
-      <button id="exBtn" hidden>Show example data</button>
+      <button id="exBtn" hidden>Back to built-in data</button>
     </div>
   </header>
-  <div class="notice" id="exNote" hidden><b>Example data.</b> These 156 parcels are invented to show how the tracker works. Parcel IDs start with EX. Run the refresh script and load its <span class="mono">parcels.json</span> to see real parcels.</div>
+  <div class="notice" id="exNote" hidden><b>Example data.</b> These parcels are invented to show how the tracker works. Parcel IDs start with EX. Run the refresh script and load its <span class="mono">parcels.json</span> to see real parcels.</div>
   <div class="sources" id="sources"></div>
 
   <div class="grid">
@@ -176,7 +176,11 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
 <script>
 (function(){
 const $=id=>document.getElementById(id);
-const EXAMPLE=JSON.parse($("example").textContent);
+function unpack(d){ if(!d.packed) return d; const k=d.packed,C=k.cols,D=k.dicts||{};
+  d.parcels=k.rows.map(r=>{const p={};for(let i=0;i<C.length;i++){const c=C[i],v=r[i];p[c]=(D[c]&&v!=null)?D[c][v]:v}
+    p.vacant=p.vacant==null?null:!!p.vacant;p.leased=!!p.leased;const u=(d.appraiser_urls||{})[p.county];if(u)p.appraiser_url=u.replace("{id}",String(p.id).replace(/-/g,""));return p});
+  delete d.packed;return d}
+const EXAMPLE=unpack(JSON.parse($("example").textContent));
 const ZCATS=["mixed-use","multifamily","commercial","industrial","single-family","residential","agricultural","other"];
 const ZW={"mixed-use":15,"multifamily":15,"commercial":12,"residential":8,"industrial":6,"single-family":4,"agricultural":2,"other":2};
 const OWNERS=["county","municipal","state","federal","school","district","other"];
@@ -234,9 +238,9 @@ function writeCrit(){["minAc","maxAc","minDu","minUnits"].forEach(k=>$(k).value=
   chips("cty",cs,v=>labs[v]||v,C.cty&&C.cty.filter(x=>cs.includes(x)).length?C.cty:null)}
 
 function daysAgo(d){if(!d)return null;const t=Date.parse(d);return isNaN(t)?null:Math.floor((Date.now()-t)/864e5)}
-function renderSources(){ $("exNote").hidden=!data.example; $("exBtn").hidden=!!data.example;
+function renderSources(){ $("exNote").hidden=!data.example; $("exBtn").hidden=data===EXAMPLE;
   $("sources").replaceChildren(...(data.sources||[]).map(s=>{const a=daysAgo(s.fetched),src=daysAgo(s.source_as_of);const stale=!data.example&&(a==null||a>14);
-    return el("div",{class:"src"+(stale?" stale":"")},[el("strong",{text:s.label+" · "+fmt(s.parcels)+" parcels"}),el("span",{text:s.provider||s.error||"No source"}),
+    return el("div",{class:"src"+(stale?" stale":"")},[el("strong",{text:s.label+" · "+fmt(s.parcels)+" parcels"}),el("span",{text:s.error||s.provider||"No source"}),
       el("span",{class:"age",text:s.fetched?("Checked "+s.fetched+(a!=null&&!data.example?" ("+a+" days ago)":"")+(s.source_as_of?" · source last updated "+s.source_as_of:"")):"Not refreshed"})])}))}
 
 function render(){
@@ -279,7 +283,7 @@ function renderMap(){
   const rank={not:0,review:1,ripe:2},draw=pts.slice().sort((a,b)=>rank[a.a.tier]-rank[b.a.tier]).slice(-5000);
   gDots.replaceChildren();
   draw.forEach(r=>{const c=sv("circle",{class:"p "+r.a.tier+(key(r.p)===selKey?" sel":""),cx:PX(r.p.lon).toFixed(1),cy:PY(r.p.lat).toFixed(1),tabindex:0},gDots);
-    c._r=Math.max(3,Math.min(10,2.5+Math.sqrt(r.p.acres||0)*1.2));c._row=r});
+    c._r=Math.max(2.5,Math.min(7,2+Math.log10((r.p.acres||0)+1)*2.2));c._row=r});
   if(!fitted){const xs=pts.map(r=>PX(r.p.lon)),ys=pts.map(r=>PY(r.p.lat));home=pts.length?fitTo(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)):fitTo(0,0,M.W,M.H);view=Object.assign({},home);fitted=true}
   applyView();
   $("mapn").textContent=draw.length<pts.length?"Top "+fmt(draw.length)+" of "+fmt(pts.length)+" shown":fmt(pts.length)+" plotted"}
@@ -323,7 +327,7 @@ function renderDetail(){const r=rows.find(r=>key(r.p)===selKey),d=$("detail");if
   if(p.lat!=null)links.push(el("a",{href:"https://www.google.com/maps/search/?api=1&query="+p.lat+","+p.lon,target:"_blank",rel:"noopener",text:"Open location in Google Maps"}));
   d.replaceChildren(el("h2",null,[el("span",{class:"mono",text:p.id}),el("span",{class:"pill "+a.tier,text:TL[a.tier]}),el("span",{class:"lab",text:"Score "+a.score+" of 100"})]),
     el("dl",null,[dd("Owner",p.owner),dd("Owner type",(OWNLAB[p.owner_level]||"")+" · from "+p.gov_basis),dd("Location",[p.address,p.city].filter(Boolean).join(", ")),dd("County",labelOf(p.county)),dd("Recorded use",p.use_label),dd("Size",p.acres!=null?fmt(p.acres,2)+" acres":""),
-      dd("Zoning",p.zoning?p.zoning+(a.z?" ("+a.z+")":""):""),dd("Allowed density",p.max_du_per_acre!=null?p.max_du_per_acre+" units/acre":""),dd("Estimated yield",p.est_units!=null?fmt(p.est_units)+" units":""),dd("Just value",money(p.just_value)),dd("Flood zone",p.flood_zone),dd("First tracked",p.first_seen)]),
+      dd("Zoning",p.zoning?p.zoning+(a.z?" ("+a.z+")":""):""),dd("Zoning source",p.zoning?[p.zoning_jurisdiction,p.zoning_description].filter(Boolean).join(": "):""),dd("Allowed density",p.max_du_per_acre!=null?p.max_du_per_acre+" units/acre":""),dd("Estimated yield",p.est_units!=null?fmt(p.est_units)+" units":""),dd("Just value",money(p.just_value)),dd("Flood zone",p.flood_zone),dd("First tracked",p.first_seen)]),
     el("ul",{class:"reasons"},[...a.fail.map(t=>el("li",{class:"fail",text:"Rules it out: "+t})),...a.unknown.map(t=>el("li",{class:"fail",text:"Check: "+t})),...a.pass.map(t=>el("li",{text:"Fits: "+t}))]),
     el("div",{class:"links"},links))}
 
@@ -340,13 +344,13 @@ $("csv").addEventListener("click",async()=>{const text=csvText();let dl=null;try
 function setData(d,remember){data=d;selKey=null;fitted=false;writeCrit();readCrit();renderSources();renderChanges();render();if(remember){try{localStorage.setItem("plt_data",JSON.stringify(d))}catch(e){try{localStorage.removeItem("plt_data")}catch(_){ }}}}
 $("loadBtn").addEventListener("click",()=>$("file").click());
 $("file").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();
-  fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!d||!Array.isArray(d.parcels)||(d.parcels[0]&&!("owner" in d.parcels[0])))throw 0;setData(d,true);toast("Loaded "+fmt(d.parcels.length)+" parcels from "+f.name)}
+  fr.onload=()=>{try{const d=unpack(JSON.parse(fr.result));if(!d||!Array.isArray(d.parcels)||(d.parcels[0]&&!("owner" in d.parcels[0])))throw 0;setData(d,true);toast("Loaded "+fmt(d.parcels.length)+" parcels from "+f.name)}
     catch(err){toast("That file is not a parcels.json from the refresh script. Nothing was changed.")}};fr.readAsText(f);e.target.value=""});
 $("exBtn").addEventListener("click",()=>{try{localStorage.removeItem("plt_data")}catch(e){}setData(EXAMPLE,false)});
 $("crit").addEventListener("input",()=>{readCrit();render()});
 $("show").addEventListener("change",renderTable);
 $("reset").addEventListener("click",()=>{C=JSON.parse(JSON.stringify(DEF));writeCrit();readCrit();render()});
-let saved=null;try{saved=JSON.parse(localStorage.getItem("plt_data"))}catch(e){}
+let saved=null;try{saved=JSON.parse(localStorage.getItem("plt_data"));if(saved&&saved.generated_at<EXAMPLE.generated_at)saved=null}catch(e){}
 setData(saved&&Array.isArray(saved.parcels)?saved:EXAMPLE,false);
 })();
 </script>
