@@ -24,6 +24,9 @@ def _z(code, grp=None):
     import providers as _p
     r = _p.blank(); r.update(id="x", county="miami-dade", owner="CITY OF MIAMI", use_code=80, acres=2.0, buildings=0, zoning=code, zoning_jurisdiction="City of Miami", zoning_group=grp)
     return core.enrich(r, {"owner_patterns": []}, _d, {})["max_du_per_acre"]
+_r = __import__("providers").blank(); _r.update(id="y", county="miami-dade", owner="MIAMI-DADE COUNTY", use_code=80, acres=2.0, buildings=0, zoning="RU-4", zoning_jurisdiction="Unincorporated Miami-Dade", zoning_description="High Density Apartment House District, 50 units / net acre")
+_e = core.enrich(_r, {"owner_patterns": []}, {}, {}); assert _e["max_du_per_acre"] == 50.0 and _e["zoning_category"] == "multifamily" and _e["est_units"] == 100
+_r2 = dict(_r, zoning="NONE"); assert core.enrich(_r2, {"owner_patterns": []}, {}, {})["zoning"] is None
 assert _z("T6-8-O") == 150.0 and _z("T3-O") == 18.0 and _z("T3-R") == 9.0 and _z("Urban Core 8", "T6") == 150.0 and _z("XYZ") is None
 assert core.zoning_from_description("High Density Apartment House District, 50 units / net acre") == ("multifamily", 50.0)
 assert core.zoning_from_description("Minimun Apartment House 12.9 units/net acre") == ("multifamily", 12.9)

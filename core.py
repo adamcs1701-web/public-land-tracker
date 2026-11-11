@@ -110,6 +110,13 @@ def enrich(rec, county_cfg, density, surplus):
     out.update(owner_level=lvl, gov_basis=basis, vacant=vacant,
                use_label=USE_LABELS.get(uc, "Non-governmental use code %s" % uc if uc is not None else "Unknown"),
                leased=(uc == 90), coded_gov=uc is not None and 80 <= uc <= 89)
+    if (rec["zoning"] or "").strip().upper() in ("NONE", "N/A", ""):
+        out["zoning"] = rec["zoning"] = None
+    if rec["zoning"] and rec.get("zoning_description"):
+        cat, du = zoning_from_description(rec["zoning_description"])
+        out["zoning_category"] = out["zoning_category"] or cat
+        if out["max_du_per_acre"] is None:
+            out["max_du_per_acre"] = du
     zc = (rec["zoning"] or "").upper().strip()
     jur = (rec.get("zoning_jurisdiction") or "").upper()
     # exact code first, then progressively broader: "T6-8-O" -> "T6-8" -> "T6", then the layer's own group field
