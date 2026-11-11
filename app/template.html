@@ -5,15 +5,15 @@
 /* Layout: criteria rail | tall tri-county plot | ranked results. Stacks to one column on phones. */
 :root{
   --bg:#f1f5f4; --surface:#ffffff; --ink:#13211f; --muted:#586a66; --line:#d3ddda; --accent:#0c6b62; --accent-ink:#ffffff;
-  --land:#fbfcfb; --water:#dfe9ee; --ripe:#1c7f45; --review:#a86a12; --not:#8b9995; --ripe-bg:#dff3e7; --review-bg:#f8ecd2; --not-bg:#e6ecea;
+  --land:#fbfcfb; --water:#d3e3ec; --rd0:#dde3e1; --rd2:#b9c4c0; --rd1:#93a29d; --ripe:#1c7f45; --review:#a86a12; --not:#8b9995; --ripe-bg:#dff3e7; --review-bg:#f8ecd2; --not-bg:#e6ecea;
   --display:"Space Grotesk","IBM Plex Sans",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#0e1615; --surface:#16211f; --ink:#e3ecea; --muted:#94a5a1; --line:#2a3937; --accent:#56c4b7; --accent-ink:#06211e;
-  --land:#1a2624; --water:#0c1418; --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark } }
+  --land:#1a2624; --water:#0b1519; --rd0:#283532; --rd2:#3b4a46; --rd1:#566863; --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#0e1615; --surface:#16211f; --ink:#e3ecea; --muted:#94a5a1; --line:#2a3937; --accent:#56c4b7; --accent-ink:#06211e;
-  --land:#1a2624; --water:#0c1418; --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark }
+  --land:#1a2624; --water:#0b1519; --rd0:#283532; --rd2:#3b4a46; --rd1:#566863; --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark }
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--body);padding-block:20px 48px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -62,7 +62,13 @@ svg.map{width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-
 svg.map.drag{cursor:grabbing}
 svg.map .ctx{fill:var(--bg);stroke:var(--line);vector-effect:non-scaling-stroke;stroke-width:1}
 svg.map .cty{fill:var(--land);stroke:var(--muted);vector-effect:non-scaling-stroke;stroke-width:1.4}
-svg.map .plc{fill:var(--accent);fill-opacity:.05;stroke:var(--accent);stroke-opacity:.45;vector-effect:non-scaling-stroke;stroke-width:.8}
+svg.map .plc{fill:var(--accent);fill-opacity:.03;pointer-events:none;stroke:var(--accent);stroke-opacity:.45;vector-effect:non-scaling-stroke;stroke-width:.8}
+svg.map .wat{fill:var(--water);stroke:none}
+svg.map .rd0,svg.map .rd1,svg.map .rd2{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+svg.map .rd0{stroke:var(--rd0);stroke-width:.8} svg.map .rd2{stroke:var(--rd2);stroke-width:1.5} svg.map .rd1{stroke:var(--rd1);stroke-width:2.4}
+svg.map text.rdl{fill:var(--muted);font-size:10px} svg.map text.rdl.maj{fill:var(--ink);fill-opacity:.75;font-weight:500}
+.grid.bigmap .mappanel{grid-column:2/-1}.grid.bigmap .results{grid-column:2/-1}.grid.bigmap .mapbox{height:max(480px,72vh)}
+@media (max-width:1100px){.grid.bigmap .mappanel,.grid.bigmap .results{grid-column:1/-1}}
 svg.map .udb{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
 svg.map text{font-family:var(--body);fill:var(--muted);pointer-events:none;text-anchor:middle;paint-order:stroke;stroke:var(--land);stroke-linejoin:round}
 svg.map text.ctyl{font-family:var(--display);font-weight:600;letter-spacing:.08em;text-transform:uppercase;fill:var(--ink);fill-opacity:.55}
@@ -145,16 +151,16 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
       <button type="button" id="reset">Reset criteria</button>
     </form>
 
-    <div class="panel">
+    <div class="panel mappanel">
       <div class="tblhead"><h2>Where they are</h2><span class="lab" id="mapn"></span></div>
       <div class="mapbox" id="mapbox">
         <svg class="map" id="map" role="img" aria-label="Map of parcels with county and city limits"></svg>
-        <div class="mapctl"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">&minus;</button><button type="button" id="zfit" class="wide" aria-label="Fit all parcels in view">Fit</button></div>
+        <div class="mapctl"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">&minus;</button><button type="button" id="zfit" class="wide" aria-label="Fit all parcels in view">Fit</button><button type="button" id="zbig" class="wide" aria-label="Make the map larger or smaller">Expand</button></div>
         <div class="scale" id="scale"><span></span></div>
         <div class="tip" id="tip" hidden></div>
       </div>
       <div class="legend"><span><i class="dot" style="background:var(--ripe)"></i>Ripe</span><span><i class="dot" style="background:var(--review)"></i>Needs review</span><span><i class="dot" style="background:var(--not)"></i>Not ripe</span><span>Larger dot, larger parcel</span><span><svg width="26" height="8" style="vertical-align:middle"><line x1="0" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="1.6" stroke-dasharray="6 4"/></svg> Development limit (Miami-Dade UDB, Palm Beach Urban/Suburban Tier)</span></div>
-      <p class="unk" style="margin:8px 0 0;font-size:12px">Drag to move, scroll or pinch to zoom. Lines are county and city limits from the Census Bureau; they run offshore, so this is not a coastline.</p>
+      <p class="unk" style="margin:8px 0 0;font-size:12px">Drag to move, scroll or pinch to zoom; streets appear as you zoom in. Click a row in the list to jump to that parcel. Streets, water and limits are from the Census Bureau, so small canals and new roads may be missing.</p>
     </div>
 
     <div class="results">
@@ -257,38 +263,78 @@ function render(){
 const GEO=JSON.parse($("geo").textContent),NS="http://www.w3.org/2000/svg";
 const M={lo0:-80.95,lo1:-79.95,la0:25.08,la1:27.03,W:1000};M.k=Math.cos((M.la0+M.la1)/2*Math.PI/180);M.H=M.W*(M.la1-M.la0)/((M.lo1-M.lo0)*M.k);
 const PX=lo=>(lo-M.lo0)/(M.lo1-M.lo0)*M.W,PY=la=>(M.la1-la)/(M.la1-M.la0)*M.H;
-let view=null,home=null,gDots=null,labels=[],fitted=false;
+let view=null,home=null,gDots=null,gLab=null,labels=[],fitted=false,ptsAll=[],settleT=0;
+const BM={idx:null,have:new Set(),cells:new Map(),major:null,g:{}};
 function sv(tag,attrs,parent,txt){const e=document.createElementNS(NS,tag);for(const q in attrs)e.setAttribute(q,attrs[q]);if(txt!=null)e.textContent=txt;(parent||$("map")).appendChild(e);return e}
-function pathOf(polys){return polys.map(p=>p.map(r=>"M"+r.map(c=>PX(c[0]).toFixed(1)+" "+PY(c[1]).toFixed(1)).join("L")+"Z").join("")).join("")}
+function pathOf(polys){return polys.map(p=>p.map(r=>"M"+r.map(c=>PX(c[0]).toFixed(2)+" "+PY(c[1]).toFixed(2)).join("L")+"Z").join("")).join("")}
+function flatPath(a,fx,fy){let d="";for(let i=0;i+1<a.length;i+=2)d+=(i?"L":"M")+fx(a[i]).toFixed(2)+" "+fy(a[i+1]).toFixed(2);return d}
 function buildBase(){const svg=$("map");svg.replaceChildren();labels=[];
   GEO.ctx.forEach(c=>sv("path",{class:"ctx",d:pathOf(c.polys)}));
   GEO.counties.forEach(c=>sv("path",{class:"cty",d:pathOf(c.polys),"fill-rule":"evenodd"}));
+  BM.g.water=sv("g",{});
   GEO.places.forEach(p=>sv("path",{class:"plc",d:pathOf(p.polys)}));
+  BM.g.local=sv("g",{});BM.g.s=sv("path",{class:"rd2",d:""});BM.g.p=sv("path",{class:"rd1",d:""});
   (GEO.dev||(GEO.udb?[GEO.udb]:[])).forEach(r=>sv("path",{class:"udb",d:pathOf([[r]])}));
-  gDots=sv("g",{});
+  gDots=sv("g",{});gLab=sv("g",{});
   const CL={"Miami-Dade":[-80.62,25.62],"Broward":[-80.58,26.15],"Palm Beach":[-80.52,26.62]};
-  GEO.counties.forEach(c=>{const q=CL[c.name];labels.push({el:sv("text",{class:"ctyl",x:PX(q[0]),y:PY(q[1])},null,c.name),px:12,min:0,max:1e9})});
-  GEO.places.forEach(p=>labels.push({el:sv("text",{x:PX(p.c[0]),y:PY(p.c[1])},null,p.name),px:11,min:p.w/(M.lo1-M.lo0)*M.W,place:true}))}
+  GEO.counties.forEach(c=>{const q=CL[c.name];labels.push({el:sv("text",{class:"ctyl",x:PX(q[0]),y:PY(q[1])},null,c.name),px:12,county:true})});
+  GEO.places.forEach(p=>labels.push({el:sv("text",{x:PX(p.c[0]),y:PY(p.c[1])},null,p.name),px:11,min:p.w/(M.lo1-M.lo0)*M.W,place:true}));
+  initBasemap()}
+async function getJSON(u){try{const r=await fetch(u);return r.ok?await r.json():null}catch(e){return null}}
+async function initBasemap(){ // bundled files; the map still works if any of them is missing
+  const [w,m,idx]=await Promise.all([getJSON("basemap/water.json"),getJSON("basemap/major.json"),getJSON("basemap/index.json")]);
+  if(w)for(let i=0;i<w.length;i+=150)sv("path",{class:"wat","fill-rule":"evenodd",d:w.slice(i,i+150).map(rings=>rings.map(r=>flatPath(r,PX,PY)+"Z").join("")).join("")},BM.g.water);
+  if(m){BM.major=m;for(const k of ["s","p"])BM.g[k].setAttribute("d",Object.values(m[k]||{}).map(ps=>ps.map(a=>flatPath(a,PX,PY)).join("")).join(""))}
+  if(idx){BM.idx=idx;BM.have=new Set(idx.cells)}
+  settle()}
+function viewDeg(){const lo=M.lo0+view.x/M.W*(M.lo1-M.lo0),lo2=M.lo0+(view.x+view.w)/M.W*(M.lo1-M.lo0),la2=M.la1-view.y/M.H*(M.la1-M.la0),la=M.la1-(view.y+view.h)/M.H*(M.la1-M.la0);return {lo,lo2,la,la2}}
+async function loadCell(k){if(BM.cells.has(k))return;BM.cells.set(k,null);const d=await getJSON("basemap/r_"+k+".json");if(!d){BM.cells.delete(k);return}
+  const fx=v=>PX(d.x0+v*1e-5),fy=v=>PY(d.y0+v*1e-5),roads=[];let s="";
+  for(const n in d.r)for(const a of d.r[n]){s+=flatPath(a,fx,fy);if(n)roads.push([n,a])}
+  BM.cells.set(k,{el:sv("path",{class:"rd0",d:s},BM.g.local),roads,fx,fy,used:Date.now()});
+  if(BM.cells.size>20){const old=[...BM.cells].filter(e=>e[1]).sort((a,b)=>a[1].used-b[1].used)[0];old[1].el.remove();BM.cells.delete(old[0])}
+  settle()}
+function drawDots(){ // only parcels in view, best-fitting first, so street-level views are never empty
+  const x0=view.x-view.w*.1,x1=view.x+view.w*1.1,y0=view.y-view.h*.1,y1=view.y+view.h*1.1,[cw]=boxSize(),u=view.w/cw;
+  let inv=ptsAll.filter(r=>r._x>=x0&&r._x<=x1&&r._y>=y0&&r._y<=y1);const total=inv.length;if(inv.length>3500)inv=inv.slice(-3500);
+  gDots.replaceChildren();
+  for(const r of inv){const c=sv("circle",{class:"p "+r.a.tier+(key(r.p)===selKey?" sel":""),cx:r._x.toFixed(3),cy:r._y.toFixed(3),tabindex:0},gDots);
+    c._r=Math.max(2.5,Math.min(7,2+Math.log10((r.p.acres||0)+1)*2.2))*(view.w<30?1.5:1);c._row=r;c.setAttribute("r",(c._r*u).toFixed(3))}
+  $("mapn").textContent=inv.length<total?"Top "+fmt(inv.length)+" of "+fmt(total)+" in view":fmt(total)+" in view"}
+function drawLabels(){gLab.replaceChildren();if(!BM.major&&!BM.cells.size)return;const [cw,ch]=boxSize(),u=view.w/cw,taken=new Set(),seen=new Set();let n=0;
+  const tryRoad=(name,a,fx,fy,maj)=>{if(n>=46||seen.has(name))return;const m=(a.length>>2)<<1,x=fx(a[m]),y=fy(a[m+1]);
+    if(x<view.x+view.w*.06||x>view.x+view.w*.94||y<view.y+view.h*.04||y>view.y+view.h*.96)return;
+    const i0=Math.max(0,m-2),i1=Math.min(a.length-2,m+2),dx=fx(a[i1])-fx(a[i0]),dy=fy(a[i1+1])-fy(a[i0+1]);
+    if(!maj){const len=Math.hypot(fx(a[a.length-2])-fx(a[0]),fy(a[a.length-1])-fy(a[1]))/u;if(len<name.length*4.2)return}
+    const cell=Math.floor((x-view.x)/u/84)+"_"+Math.floor((y-view.y)/u/26);if(taken.has(cell))return;taken.add(cell);seen.add(name);n++;
+    let ang=Math.atan2(dy,dx)*180/Math.PI;if(ang>90)ang-=180;if(ang<-90)ang+=180;
+    sv("text",{class:"rdl"+(maj?" maj":""),x:x.toFixed(3),y:y.toFixed(3),transform:"rotate("+ang.toFixed(1)+" "+x.toFixed(3)+" "+y.toFixed(3)+")","font-size":((maj?10.5:10)*u).toFixed(3),"stroke-width":(3*u).toFixed(3),dy:(3.4*u).toFixed(3)},gLab,name)};
+  if(BM.major&&view.w<420)for(const k of ["p","s"])for(const name in BM.major[k]){if(!name)continue;for(const a of BM.major[k][name])tryRoad(name,a,PX,PY,true)}
+  if(view.w<26)for(const c of BM.cells.values())if(c)for(const [name,a] of c.roads)tryRoad(name,a,c.fx,c.fy,false)}
+function settle(){clearTimeout(settleT);settleT=setTimeout(()=>{if(!view||!gDots)return;drawDots();
+  const local=view.w<130&&BM.idx;BM.g.local.style.display=local?"":"none";
+  if(local){const v=viewDeg(),c=BM.idx.cell;for(let i=Math.floor((v.lo-BM.idx.x0)/c);i<=Math.floor((v.lo2-BM.idx.x0)/c);i++)for(let j=Math.floor((v.la-BM.idx.y0)/c);j<=Math.floor((v.la2-BM.idx.y0)/c);j++){const k=i+"_"+j;if(BM.have.has(k)){const e=BM.cells.get(k);if(e)e.used=Date.now();else if(!BM.cells.has(k))loadCell(k)}}
+    for(const e of BM.cells.values())if(e)e.el.style.strokeWidth=view.w<8?"3.2px":view.w<30?"1.7px":".8px"}
+  drawLabels()},130)}
 function boxSize(){const b=$("mapbox");return [b.clientWidth||340,b.clientHeight||560]}
 function fitTo(x0,y0,x1,y1){const [cw,ch]=boxSize(),ar=cw/ch;let w=Math.max(x1-x0,20),h=Math.max(y1-y0,20);const cx=(x0+x1)/2,cy=(y0+y1)/2;if(w/h<ar)w=h*ar;else h=w/ar;w*=1.12;h*=1.12;return {x:cx-w/2,y:cy-h/2,w,h}}
 function applyView(){if(!view)return;const [cw,ch]=boxSize();view.h=view.w*ch/cw;const u=view.w/cw; // u = map units per screen pixel
-  $("map").setAttribute("viewBox",[view.x,view.y,view.w,view.h].map(n=>n.toFixed(2)).join(" "));
-  labels.forEach(l=>{const show=!l.place||(l.min/u>64);l.el.style.display=show?"":"none";if(show){l.el.setAttribute("font-size",(l.px*u).toFixed(2));l.el.setAttribute("stroke-width",(3*u).toFixed(2))}});
-  for(const c of gDots.children)c.setAttribute("r",(c._r*u).toFixed(2));
-  const mi=u*(M.lo1-M.lo0)/M.W*M.k*69.17; let pick=.1;for(const s of [.1,.25,.5,1,2,5,10,20,50])if(s/mi<=110)pick=s;
-  $("scale").style.width=Math.round(pick/mi)+"px";$("scale").firstChild.textContent=pick+" mi"}
-function zoomAt(f,sx,sy){const [cw,ch]=boxSize();if(sx==null){sx=cw/2;sy=ch/2}const nw=Math.min(M.W*2.2,Math.max(1.2,view.w*f)),r=nw/view.w,u=view.w/cw;
+  $("map").setAttribute("viewBox",[view.x,view.y,view.w,view.h].map(n=>n.toFixed(3)).join(" "));
+  labels.forEach(l=>{const show=l.county?view.w>260:(l.min/u>64&&view.w>14);l.el.style.display=show?"":"none";if(show){l.el.setAttribute("font-size",(l.px*u).toFixed(3));l.el.setAttribute("stroke-width",(3*u).toFixed(3))}});
+  for(const c of gDots.children)c.setAttribute("r",(c._r*u).toFixed(3));
+  const mi=u*(M.lo1-M.lo0)/M.W*M.k*69.17,ft=mi*5280;let lab,px;
+  if(110*mi>=.2){let pick=.1;for(const s of [.1,.25,.5,1,2,5,10,20,50])if(s/mi<=110)pick=s;lab=pick+" mi";px=pick/mi}else{let pick=50;for(const s of [50,100,200,500])if(s/ft<=110)pick=s;lab=pick+" ft";px=pick/ft}
+  $("scale").style.width=Math.round(px)+"px";$("scale").firstChild.textContent=lab;settle()}
+function zoomAt(f,sx,sy){const [cw,ch]=boxSize();if(sx==null){sx=cw/2;sy=ch/2}const nw=Math.min(M.W*2.2,Math.max(.9,view.w*f)),r=nw/view.w,u=view.w/cw;
   view.x+=sx*u*(1-r);view.y+=sy*u*(1-r);view.w=nw;applyView()}
 function renderMap(){
   if(!gDots)buildBase();
-  const pts=rows.filter(r=>r.p.lat!=null&&r.p.lon!=null&&r.p.lat>M.la0&&r.p.lat<M.la1&&r.p.lon>M.lo0&&r.p.lon<M.lo1);
-  const rank={not:0,review:1,ripe:2},draw=pts.slice().sort((a,b)=>rank[a.a.tier]-rank[b.a.tier]).slice(-5000);
-  gDots.replaceChildren();
-  draw.forEach(r=>{const c=sv("circle",{class:"p "+r.a.tier+(key(r.p)===selKey?" sel":""),cx:PX(r.p.lon).toFixed(1),cy:PY(r.p.lat).toFixed(1),tabindex:0},gDots);
-    c._r=Math.max(2.5,Math.min(7,2+Math.log10((r.p.acres||0)+1)*2.2));c._row=r});
-  if(!fitted){const xs=pts.map(r=>PX(r.p.lon)),ys=pts.map(r=>PY(r.p.lat));home=pts.length?fitTo(Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)):fitTo(0,0,M.W,M.H);view=Object.assign({},home);fitted=true}
-  applyView();
-  $("mapn").textContent=draw.length<pts.length?"Top "+fmt(draw.length)+" of "+fmt(pts.length)+" shown":fmt(pts.length)+" plotted"}
+  const rank={not:0,review:1,ripe:2};
+  ptsAll=rows.filter(r=>r.p.lat!=null&&r.p.lon!=null&&r.p.lat>M.la0&&r.p.lat<M.la1&&r.p.lon>M.lo0&&r.p.lon<M.lo1);
+  ptsAll.forEach(r=>{r._x=PX(r.p.lon);r._y=PY(r.p.lat)});ptsAll.sort((a,b)=>rank[a.a.tier]-rank[b.a.tier]||a.a.score-b.a.score);
+  if(!fitted){const xs=ptsAll.map(r=>r._x),ys=ptsAll.map(r=>r._y);let a=1e9,b=1e9,c=-1e9,d=-1e9;for(let i=0;i<xs.length;i++){if(xs[i]<a)a=xs[i];if(xs[i]>c)c=xs[i];if(ys[i]<b)b=ys[i];if(ys[i]>d)d=ys[i]}
+    home=ptsAll.length?fitTo(a,b,c,d):fitTo(0,0,M.W,M.H);view=Object.assign({},home);fitted=true}
+  applyView();drawDots()}
 function pickDot(c){selKey=key(c._row.p);for(const d of gDots.children)d.classList.toggle("sel",d===c);renderTable();renderDetail()}
 (function wireMap(){const svg=$("map"),tip=$("tip"),ptrs=new Map();let moved=0,pinch=0;
   svg.addEventListener("wheel",e=>{e.preventDefault();const b=svg.getBoundingClientRect();zoomAt(e.deltaY>0?1.25:.8,e.clientX-b.left,e.clientY-b.top)},{passive:false});
@@ -307,9 +353,10 @@ function pickDot(c){selKey=key(c._row.p);for(const d of gDots.children)d.classLi
   svg.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target._row)pickDot(e.target)});
   $("zin").addEventListener("click",()=>zoomAt(.6));$("zout").addEventListener("click",()=>zoomAt(1.6));
   $("zfit").addEventListener("click",()=>{fitted=false;renderMap()});
+  $("zbig").addEventListener("click",()=>{const g=document.querySelector(".grid"),on=g.classList.toggle("bigmap");$("zbig").textContent=on?"Shrink":"Expand";applyView()});
   window.addEventListener("resize",applyView)})();
 
-function focusSel(){const r=rows.find(r=>key(r.p)===selKey);if(!r||r.p.lat==null||!view)return;const x=PX(r.p.lon),y=PY(r.p.lat);if(x<view.x||x>view.x+view.w||y<view.y||y>view.y+view.h){view.x=x-view.w/2;view.y=y-view.h/2;applyView()}}
+function focusSel(){const r=rows.find(r=>key(r.p)===selKey);if(!r||r.p.lat==null||!view)return;const x=PX(r.p.lon),y=PY(r.p.lat);if(view.w>24)view.w=Math.max(6,Math.min(24,Math.sqrt(r.p.acres||1)*1.6));const [cw,ch]=boxSize();view.h=view.w*ch/cw;view.x=x-view.w/2;view.y=y-view.h/2;applyView()}
 const COLS=[["","Fit",null],["score","Score","num"],["county","County"],["id","Parcel"],["owner","Owner"],["use","Recorded use"],["acres","Acres","num"],["zoning","Zoning"],["du","Units/ac","num"],["units","Est. units","num"],["jv","Value","num"]];
 function shown(){const m=$("show").value;return rows.filter(r=>m==="all"||(m==="ripe"?r.a.tier==="ripe":r.a.tier!=="not"))}
 function renderTable(){
