@@ -58,7 +58,8 @@ url = "http://127.0.0.1:8765/arcgis/rest/services/Mock/FeatureServer/0"
 cfg = json.load(open(os.path.join(root, "config.json")))
 cfg["output"] = "out/parcels.json"
 cfg["exclude_owner_levels"] = []
-cfg["counties"]["miami-dade"].pop("development_boundary", None)
+for _c in cfg["counties"].values():
+    _c.pop("development_boundary", None)
 sq = core.Boundary({"features": [{"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [4, 0], [4, 4], [0, 4], [0, 0]], [[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]]]}}]})
 assert sq.contains(3, 3) is True and sq.contains(5, 1) is False and sq.contains(1.5, 1.5) is False and sq.contains(None, 1) is None
 for c in cfg["counties"].values():
