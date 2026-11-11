@@ -1,0 +1,291 @@
+<title>Florida Public Land Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: criteria rail | tall tri-county plot | ranked results. Stacks to one column on phones. */
+:root{
+  --bg:#f1f5f4; --surface:#ffffff; --ink:#13211f; --muted:#586a66; --line:#d3ddda; --accent:#0c6b62; --accent-ink:#ffffff;
+  --ripe:#1c7f45; --review:#a86a12; --not:#8b9995; --ripe-bg:#dff3e7; --review-bg:#f8ecd2; --not-bg:#e6ecea;
+  --display:"Space Grotesk","IBM Plex Sans",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1615; --surface:#16211f; --ink:#e3ecea; --muted:#94a5a1; --line:#2a3937; --accent:#56c4b7; --accent-ink:#06211e;
+  --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0e1615; --surface:#16211f; --ink:#e3ecea; --muted:#94a5a1; --line:#2a3937; --accent:#56c4b7; --accent-ink:#06211e;
+  --ripe:#55cf88; --review:#e2ad52; --not:#6a7a76; --ripe-bg:#143424; --review-bg:#3a2d12; --not-bg:#222e2c; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--body);padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font:600 24px/1.2 var(--display);margin:0;text-wrap:balance}
+h2{font:600 15px/1.3 var(--display);margin:0}
+.lab{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:500}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+.sub{color:var(--muted);margin:4px 0 0;max-width:65ch}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button,.btn{font:500 13px var(--body);padding:7px 12px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button:hover,.btn:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.notice{background:var(--review-bg);border:1px solid var(--review);border-radius:6px;padding:10px 12px}
+.notice b{font-weight:600}
+.sources{display:flex;flex-wrap:wrap;gap:8px}
+.src{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 12px;display:flex;flex-direction:column;min-width:0}
+.src strong{font-weight:600}.src span{color:var(--muted);font-size:12px}
+.src.stale{border-color:var(--review)}.src.stale span.age{color:var(--review);font-weight:500}
+.grid{display:grid;grid-template-columns:270px 340px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.grid{grid-template-columns:270px minmax(0,1fr)} .results{grid-column:1/-1}}
+@media (max-width:700px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.crit{display:flex;flex-direction:column;gap:14px}
+.crit fieldset{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.crit legend{padding:0;margin-bottom:6px}
+.row{display:flex;gap:8px;align-items:center}
+.row label{flex:1;display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);min-width:0}
+input[type=number],select{font:14px var(--body);padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer}
+.chk input{margin-top:3px;accent-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;cursor:pointer;user-select:none}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips label:has(input:checked){background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chips label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.tally{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tally div{border-radius:6px;padding:8px 10px}
+.tally b{display:block;font:600 22px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.t-ripe{background:var(--ripe-bg);color:var(--ripe)}.t-review{background:var(--review-bg);color:var(--review)}.t-not{background:var(--not-bg);color:var(--muted)}
+.tally span{font-size:12px}
+svg.map{width:100%;height:auto;display:block;background:var(--bg);border-radius:6px;border:1px solid var(--line)}
+svg.map text{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+svg.map .grat{stroke:var(--line);stroke-width:1;fill:none}
+svg.map .city{fill:var(--ink)} svg.map .cityt{fill:var(--ink);font-family:var(--body);font-size:11px;font-weight:500}
+svg.map circle.p{cursor:pointer;stroke:var(--surface);stroke-width:.8;fill-opacity:.8}
+svg.map circle.p.ripe{fill:var(--ripe)} svg.map circle.p.review{fill:var(--review)} svg.map circle.p.not{fill:var(--not);fill-opacity:.45}
+svg.map circle.p.sel{stroke:var(--ink);stroke-width:2.5;fill-opacity:1}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.results{display:flex;flex-direction:column;gap:16px;min-width:0}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.pill.ripe{background:var(--ripe-bg);color:var(--ripe)}.pill.review{background:var(--review-bg);color:var(--review)}.pill.not{background:var(--not-bg);color:var(--muted)}
+.detail h2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.detail dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px;margin:12px 0}
+.detail dt{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.detail dd{margin:0;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.reasons{margin:0;padding-left:18px;color:var(--muted)} .reasons li.fail{color:var(--ink)}
+.links{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+a{color:var(--accent)}
+.mono{font-family:var(--mono);font-size:12.5px}
+.tblhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.own{white-space:normal;min-width:180px}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;cursor:pointer;user-select:none}
+th.num,td.num{text-align:right}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--bg)} tbody tr.sel{background:var(--not-bg)}
+.unk{color:var(--muted)}
+.changes{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.changes li{display:grid;grid-template-columns:90px 80px minmax(0,1fr);gap:10px;font-size:13px}
+@media (max-width:700px){.changes li{grid-template-columns:minmax(0,1fr)}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;max-width:90vw}
+textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Florida Public Land Tracker</h1>
+      <p class="sub">Government-owned parcels in Miami-Dade, Broward and Palm Beach, sorted by how well they fit your criteria for public-private development.</p>
+    </div>
+    <div class="actions">
+      <input type="file" id="file" accept=".json,application/json" hidden>
+      <button class="primary" id="loadBtn">Load data file</button>
+      <button id="exBtn" hidden>Show example data</button>
+    </div>
+  </header>
+  <div class="notice" id="exNote" hidden><b>Example data.</b> These 156 parcels are invented to show how the tracker works. Parcel IDs start with EX. Run the refresh script and load its <span class="mono">parcels.json</span> to see real parcels.</div>
+  <div class="sources" id="sources"></div>
+
+  <div class="grid">
+    <form class="panel crit" id="crit" onsubmit="return false">
+      <h2>What counts as ripe</h2>
+      <div class="tally" id="tally"></div>
+      <fieldset><legend class="lab">Parcel size (acres)</legend>
+        <div class="row"><label>At least<input type="number" id="minAc" min="0" step="0.25"></label><label>At most<input type="number" id="maxAc" min="0" step="1" placeholder="any"></label></div>
+      </fieldset>
+      <fieldset><legend class="lab">Density</legend>
+        <div class="row"><label>Min units per acre<input type="number" id="minDu" min="0" step="1"></label><label>Min total units<input type="number" id="minUnits" min="0" step="10"></label></div>
+      </fieldset>
+      <fieldset><legend class="lab">Zoning allowed</legend><div class="chips" id="zon"></div></fieldset>
+      <fieldset><legend class="lab">Owner</legend><div class="chips" id="own"></div></fieldset>
+      <fieldset><legend class="lab">County</legend><div class="chips" id="cty"></div></fieldset>
+      <fieldset><legend class="lab">Rule out</legend>
+        <label class="chk"><input type="checkbox" id="vacOnly">Land with buildings on it</label>
+        <label class="chk"><input type="checkbox" id="xPark">Parks, forests, recreation</label>
+        <label class="chk"><input type="checkbox" id="xSchool">Schools and colleges</label>
+        <label class="chk"><input type="checkbox" id="xHosp">Hospitals and military</label>
+        <label class="chk"><input type="checkbox" id="xLease">Land already leased to a private party</label>
+        <label class="chk"><input type="checkbox" id="xFlood">High-risk flood zones (A and V)</label>
+        <label class="chk"><input type="checkbox" id="surOnly">Anything not on a surplus list</label>
+      </fieldset>
+      <button type="button" id="reset">Reset criteria</button>
+    </form>
+
+    <div class="panel">
+      <div class="tblhead"><h2>Where they are</h2><span class="lab" id="mapn"></span></div>
+      <svg class="map" id="map" role="img" aria-label="Parcel locations plotted by latitude and longitude"></svg>
+      <div class="legend"><span><i class="dot" style="background:var(--ripe)"></i>Ripe</span><span><i class="dot" style="background:var(--review)"></i>Needs review</span><span><i class="dot" style="background:var(--not)"></i>Not ripe</span><span>Larger dot, larger parcel</span></div>
+    </div>
+
+    <div class="results">
+      <div class="panel detail" id="detail"></div>
+      <div class="panel">
+        <div class="tblhead"><h2 id="tblTitle">Parcels</h2>
+          <div class="actions"><select id="show" aria-label="Which parcels to list" style="width:auto"><option value="fit">Ripe and needs review</option><option value="ripe">Ripe only</option><option value="all">All government parcels</option></select><button id="csv">Export list</button></div></div>
+        <div class="scroll"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
+        <p class="unk" id="more"></p>
+        <div id="copyBox" hidden><p class="unk">Saving a file is not available in this view. Copy the list below instead.</p><textarea id="copyTa" readonly></textarea></div>
+      </div>
+      <div class="panel"><h2>What changed since the last refresh</h2><ul class="changes" id="changes"></ul></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script id="example" type="application/json">__EXAMPLE__</script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const EXAMPLE=JSON.parse($("example").textContent);
+const ZCATS=["mixed-use","multifamily","commercial","industrial","single-family","residential","agricultural","other"];
+const ZW={"mixed-use":15,"multifamily":15,"commercial":12,"residential":8,"industrial":6,"single-family":4,"agricultural":2,"other":2};
+const OWNERS=["county","municipal","state","federal","school","district","other"];
+const OWNLAB={county:"County",municipal:"City",state:"State",federal:"Federal",school:"School board",district:"Special district",other:"Other"};
+const DEF={minAc:1,maxAc:"",minDu:20,minUnits:0,zon:["mixed-use","multifamily","commercial","residential"],own:OWNERS.slice(),cty:null,
+  vacOnly:true,xPark:true,xSchool:true,xHosp:true,xLease:true,xFlood:false,surOnly:false};
+const CITIES=[["Miami",25.7617,-80.1918],["Fort Lauderdale",26.1224,-80.1373],["West Palm Beach",26.7153,-80.0534]];
+let data=EXAMPLE, C=load("crit")||JSON.parse(JSON.stringify(DEF)), rows=[], selKey=null, sortBy="score", sortDir=-1;
+
+function load(k){try{return JSON.parse(localStorage.getItem("plt_"+k))}catch(e){return null}}
+function save(k,v){try{localStorage.setItem("plt_"+k,JSON.stringify(v))}catch(e){}}
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,3500)}
+const fmt=(n,d)=>n==null?"":Number(n).toLocaleString("en-US",{maximumFractionDigits:d==null?0:d});
+const money=n=>n==null?"":"$"+(n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?Math.round(n/1e3)+"K":Math.round(n));
+const key=p=>p.county+"|"+p.id;
+function el(tag,props,kids){const e=document.createElement(tag);if(props)for(const k in props){if(k==="class")e.className=props[k];else if(k==="text")e.textContent=props[k];else e.setAttribute(k,props[k])}
+  (kids||[]).forEach(c=>e.appendChild(typeof c==="string"?document.createTextNode(c):c));return e}
+
+function zcat(p){ // fold any provider's zoning wording into one of our categories
+  const s=((p.zoning_category||"")+"").toLowerCase(); if(!s) return null;
+  if(s.includes("mixed"))return"mixed-use"; if(s.includes("multi"))return"multifamily"; if(s.includes("single"))return"single-family";
+  if(s.includes("commerc")||s.includes("office")||s.includes("business"))return"commercial"; if(s.includes("indus"))return"industrial";
+  if(s.includes("resid"))return"residential"; if(s.includes("agri"))return"agricultural"; return"other"}
+
+// One parcel in, a tier + score + plain-language reasons out. All "ripeness" logic lives here.
+function assess(p,c){
+  const fail=[],unknown=[],pass=[]; const ac=p.acres,z=zcat(p),uc=p.use_code;
+  if(ac==null)unknown.push("Size is not recorded"); else if(ac<(+c.minAc||0))fail.push(fmt(ac,2)+" acres is under your "+c.minAc+"-acre minimum");
+  else if(c.maxAc!==""&&c.maxAc!=null&&ac>+c.maxAc)fail.push(fmt(ac,2)+" acres is over your "+c.maxAc+"-acre maximum"); else pass.push(fmt(ac,2)+" acres");
+  if(c.cty&&!c.cty.includes(p.county))fail.push("County is switched off");
+  if(!c.own.includes(p.owner_level))fail.push("Owner type ("+(OWNLAB[p.owner_level]||p.owner_level)+") is switched off");
+  if(c.vacOnly){if(p.vacant==null)unknown.push("Unknown whether the land has buildings");else if(!p.vacant)fail.push("Has buildings or other improvements");else pass.push("Vacant")}
+  if(c.xPark&&uc===82)fail.push("Coded as park, forest or recreation land");
+  if(c.xSchool&&(uc===83||uc===84))fail.push("Coded as a school or college");
+  if(c.xHosp&&(uc===85||uc===81))fail.push("Coded as a hospital or military site");
+  if(c.xLease&&p.leased)fail.push("Already leased to a private party");
+  if(c.xFlood){const f=(p.flood_zone||"").toUpperCase();if(!f)unknown.push("Flood zone is not in this data source");else if(/^(A|V)/.test(f))fail.push("Flood zone "+f)}
+  if(c.surOnly&&!p.surplus_list)fail.push("Not on a surplus list");
+  if(c.zon.length<ZCATS.length){if(!z)unknown.push("Zoning is not in this data source");else if(!c.zon.includes(z))fail.push("Zoned "+(p.zoning||z)+" ("+z+")");else pass.push("Zoned "+(p.zoning||z))}
+  if(+c.minDu>0){if(p.max_du_per_acre==null)unknown.push("Allowed density is not known");else if(p.max_du_per_acre<+c.minDu)fail.push("Allows "+p.max_du_per_acre+" units per acre, under your minimum of "+c.minDu);else pass.push("Allows "+p.max_du_per_acre+" units per acre")}
+  if(+c.minUnits>0){if(p.est_units==null)unknown.push("Unit yield cannot be estimated");else if(p.est_units<+c.minUnits)fail.push("About "+p.est_units+" units, under your minimum of "+c.minUnits)}
+  if(p.surplus_list)pass.push("On a surplus list: "+p.surplus_list);
+  let s=0; if(ac)s+=30*Math.min(1,ac/5); if(p.vacant)s+=20; if(p.max_du_per_acre)s+=25*Math.min(1,p.max_du_per_acre/50); if(z)s+=ZW[z]||0; if(p.surplus_list)s+=10;
+  return {tier:fail.length?"not":unknown.length?"review":"ripe",score:Math.round(s),fail,unknown,pass,z}}
+
+function readCrit(){["minAc","maxAc","minDu","minUnits"].forEach(k=>C[k]=$(k).value);
+  ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly"].forEach(k=>C[k]=$(k).checked);
+  const picked=id=>[...$(id).querySelectorAll("input:checked")].map(i=>i.value);
+  C.zon=picked("zon");C.own=picked("own");C.cty=picked("cty");save("crit",C)}
+function writeCrit(){["minAc","maxAc","minDu","minUnits"].forEach(k=>$(k).value=C[k]);
+  ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly"].forEach(k=>$(k).checked=!!C[k]);
+  const chips=(id,vals,lab,on)=>{$(id).replaceChildren(...vals.map(v=>{const i=el("input",{type:"checkbox",value:v,id:id+"_"+v});i.checked=!on||on.includes(v);return el("label",null,[i,lab(v)])}))};
+  chips("zon",ZCATS,v=>v[0].toUpperCase()+v.slice(1),C.zon); chips("own",OWNERS,v=>OWNLAB[v],C.own);
+  const cs=[...new Set(data.parcels.map(p=>p.county))]; const labs={}; (data.sources||[]).forEach(s=>labs[s.county]=s.label);
+  chips("cty",cs,v=>labs[v]||v,C.cty&&C.cty.filter(x=>cs.includes(x)).length?C.cty:null)}
+
+function daysAgo(d){if(!d)return null;const t=Date.parse(d);return isNaN(t)?null:Math.floor((Date.now()-t)/864e5)}
+function renderSources(){ $("exNote").hidden=!data.example; $("exBtn").hidden=!!data.example;
+  $("sources").replaceChildren(...(data.sources||[]).map(s=>{const a=daysAgo(s.fetched),src=daysAgo(s.source_as_of);const stale=!data.example&&(a==null||a>14);
+    return el("div",{class:"src"+(stale?" stale":"")},[el("strong",{text:s.label+" · "+fmt(s.parcels)+" parcels"}),el("span",{text:s.provider||s.error||"No source"}),
+      el("span",{class:"age",text:s.fetched?("Checked "+s.fetched+(a!=null&&!data.example?" ("+a+" days ago)":"")+(s.source_as_of?" · source last updated "+s.source_as_of:"")):"Not refreshed"})])}))}
+
+function render(){
+  rows=data.parcels.map(p=>({p,a:assess(p,C)}));
+  const n={ripe:0,review:0,not:0};rows.forEach(r=>n[r.a.tier]++);
+  $("tally").replaceChildren(el("div",{class:"t-ripe"},[el("b",{text:fmt(n.ripe)}),el("span",{text:"Ripe"})]),el("div",{class:"t-review"},[el("b",{text:fmt(n.review)}),el("span",{text:"Needs review"})]),el("div",{class:"t-not"},[el("b",{text:fmt(n.not)}),el("span",{text:"Not ripe"})]));
+  const order={ripe:0,review:1,not:2}; const get={score:r=>r.a.score,acres:r=>r.p.acres||0,du:r=>r.p.max_du_per_acre||0,units:r=>r.p.est_units||0,jv:r=>r.p.just_value||0,owner:r=>r.p.owner,county:r=>r.p.county,id:r=>r.p.id,zoning:r=>r.p.zoning||"",use:r=>r.p.use_label};
+  rows.sort((x,y)=>order[x.a.tier]-order[y.a.tier]||((get[sortBy](x)>get[sortBy](y)?1:get[sortBy](x)<get[sortBy](y)?-1:0)*sortDir));
+  if(!rows.some(r=>key(r.p)===selKey))selKey=rows.length?key(rows[0].p):null;
+  renderMap();renderTable();renderDetail()}
+
+function renderMap(){
+  const svg=$("map"),NS="http://www.w3.org/2000/svg",pts=rows.filter(r=>r.p.lat!=null&&r.p.lon!=null);
+  let la0=Math.min(25.5,...pts.map(r=>r.p.lat)),la1=Math.max(26.9,...pts.map(r=>r.p.lat)),lo0=Math.min(-80.5,...pts.map(r=>r.p.lon)),lo1=Math.max(-80.0,...pts.map(r=>r.p.lon));
+  const pad=.06;la0-=pad;la1+=pad;lo0-=pad;lo1+=pad; const k=Math.cos((la0+la1)/2*Math.PI/180),W=340,H=Math.round(W*(la1-la0)/((lo1-lo0)*k));
+  const X=lo=>(lo-lo0)/(lo1-lo0)*W,Y=la=>(la1-la)/(la1-la0)*H; svg.setAttribute("viewBox","0 0 "+W+" "+H); svg.replaceChildren();
+  const mk=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const q in a)e.setAttribute(q,a[q]);if(txt)e.textContent=txt;svg.appendChild(e);return e};
+  for(let la=Math.ceil(la0*4)/4;la<la1;la+=.25){mk("line",{class:"grat",x1:0,x2:W,y1:Y(la),y2:Y(la)});mk("text",{x:4,y:Y(la)-3},la.toFixed(2)+"°N")}
+  for(let lo=Math.ceil(lo0*4)/4;lo<lo1;lo+=.25){mk("line",{class:"grat",y1:0,y2:H,x1:X(lo),x2:X(lo)});mk("text",{x:X(lo)+3,y:H-5},Math.abs(lo).toFixed(2)+"°W")}
+  const draw=pts.slice().sort((a,b)=>(a.a.tier==="not"?0:1)-(b.a.tier==="not"?0:1)).slice(-4000);
+  draw.forEach(r=>{const c=mk("circle",{class:"p "+r.a.tier+(key(r.p)===selKey?" sel":""),cx:X(r.p.lon).toFixed(1),cy:Y(r.p.lat).toFixed(1),r:Math.max(2.5,Math.min(9,2+Math.sqrt(r.p.acres||0)*1.3)).toFixed(1),tabindex:0});
+    c.appendChild(mk("title",{},r.p.id+" · "+r.p.owner)); const pick=()=>{selKey=key(r.p);renderMap();renderTable();renderDetail()};c.addEventListener("click",pick);c.addEventListener("keydown",e=>{if(e.key==="Enter")pick()})});
+  CITIES.forEach(([n,la,lo])=>{if(la>la0&&la<la1&&lo>lo0&&lo<lo1){mk("rect",{class:"city",x:X(lo)-2.5,y:Y(la)-2.5,width:5,height:5});mk("text",{class:"cityt",x:X(lo)-6,y:Y(la)+4,"text-anchor":"end"},n)}});
+  $("mapn").textContent=fmt(pts.length)+" plotted"}
+
+const COLS=[["","Fit",null],["score","Score","num"],["county","County"],["id","Parcel"],["owner","Owner"],["use","Recorded use"],["acres","Acres","num"],["zoning","Zoning"],["du","Units/ac","num"],["units","Est. units","num"],["jv","Value","num"]];
+function shown(){const m=$("show").value;return rows.filter(r=>m==="all"||(m==="ripe"?r.a.tier==="ripe":r.a.tier!=="not"))}
+function renderTable(){
+  $("thead").replaceChildren(...COLS.map(([k,l,c])=>{const th=el("th",{class:c||"",text:l+(k&&k===sortBy?(sortDir<0?" ↓":" ↑"):"")});if(k)th.addEventListener("click",()=>{sortDir=sortBy===k?-sortDir:-1;sortBy=k;render()});return th}));
+  const list=shown(),cap=250,TL={ripe:"Ripe",review:"Review",not:"Not ripe"},u=()=>el("span",{class:"unk",text:"unknown"});
+  $("tbody").replaceChildren(...list.slice(0,cap).map(({p,a})=>{const tr=el("tr",{class:key(p)===selKey?"sel":""},[
+    el("td",null,[el("span",{class:"pill "+a.tier,text:TL[a.tier]})]),el("td",{class:"num",text:a.score}),el("td",{text:labelOf(p.county)}),el("td",{class:"mono",text:p.id}),el("td",{class:"own",text:p.owner}),el("td",{text:p.use_label||""}),
+    el("td",{class:"num",text:fmt(p.acres,2)}),el("td",null,[p.zoning?p.zoning:u()]),el("td",{class:"num"},[p.max_du_per_acre!=null?fmt(p.max_du_per_acre):u()]),el("td",{class:"num"},[p.est_units!=null?fmt(p.est_units):u()]),el("td",{class:"num",text:money(p.just_value)})]);
+    tr.addEventListener("click",()=>{selKey=key(p);renderMap();renderTable();renderDetail()});return tr}));
+  $("tblTitle").textContent=fmt(list.length)+" parcels";
+  $("more").textContent=list.length>cap?"Showing the top "+cap+". Export the list to get all "+fmt(list.length)+".":list.length?"":"No parcels match. Loosen a criterion on the left."}
+function labelOf(c){const s=(data.sources||[]).find(s=>s.county===c);return s?s.label:c}
+
+function renderDetail(){const r=rows.find(r=>key(r.p)===selKey),d=$("detail");if(!r){d.replaceChildren(el("h2",{text:"Select a parcel"}));return}
+  const {p,a}=r,TL={ripe:"Ripe",review:"Needs review",not:"Not ripe"},dd=(t,v)=>el("div",null,[el("dt",{text:t}),el("dd",{text:v||"unknown"})]);
+  const links=[];if(p.appraiser_url&&/^https:\/\//.test(p.appraiser_url))links.push(el("a",{href:p.appraiser_url,target:"_blank",rel:"noopener",text:"Property appraiser record"}));
+  if(p.lat!=null)links.push(el("a",{href:"https://www.google.com/maps/search/?api=1&query="+p.lat+","+p.lon,target:"_blank",rel:"noopener",text:"Open location in Google Maps"}));
+  d.replaceChildren(el("h2",null,[el("span",{class:"mono",text:p.id}),el("span",{class:"pill "+a.tier,text:TL[a.tier]}),el("span",{class:"lab",text:"Score "+a.score+" of 100"})]),
+    el("dl",null,[dd("Owner",p.owner),dd("Owner type",(OWNLAB[p.owner_level]||"")+" · from "+p.gov_basis),dd("Location",[p.address,p.city].filter(Boolean).join(", ")),dd("County",labelOf(p.county)),dd("Recorded use",p.use_label),dd("Size",p.acres!=null?fmt(p.acres,2)+" acres":""),
+      dd("Zoning",p.zoning?p.zoning+(a.z?" ("+a.z+")":""):""),dd("Allowed density",p.max_du_per_acre!=null?p.max_du_per_acre+" units/acre":""),dd("Estimated yield",p.est_units!=null?fmt(p.est_units)+" units":""),dd("Just value",money(p.just_value)),dd("Flood zone",p.flood_zone),dd("First tracked",p.first_seen)]),
+    el("ul",{class:"reasons"},[...a.fail.map(t=>el("li",{class:"fail",text:"Rules it out: "+t})),...a.unknown.map(t=>el("li",{class:"fail",text:"Check: "+t})),...a.pass.map(t=>el("li",{text:"Fits: "+t}))]),
+    el("div",{class:"links"},links))}
+
+function renderChanges(){const ch=(data.changes||[]).slice(0,60),TL={added:"review",removed:"not",changed:"ripe"},NM={added:"Added",removed:"Removed",changed:"Changed"};
+  $("changes").replaceChildren(...(ch.length?ch.map(c=>el("li",null,[el("span",{class:"unk",text:c.date}),el("span",null,[el("span",{class:"pill "+(TL[c.type]||"not"),text:NM[c.type]||c.type})]),el("span",null,[el("span",{class:"mono",text:c.id+" "}),labelOf(c.county)+". "+c.detail])])):[el("li",null,[el("span",{class:"unk",text:"Nothing yet. Changes appear after the second refresh."})])]))}
+
+function csvText(){const H=["fit","score","county","parcel_id","owner","owner_type","use","acres","vacant","zoning","zoning_category","max_du_per_acre","est_units","just_value","flood_zone","surplus_list","lat","lon","reasons","appraiser_url"];
+  const q=v=>{v=v==null?"":String(v);if(/^[=+\-@]/.test(v))v="'"+v;return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  return [H.join(",")].concat(shown().map(({p,a})=>[a.tier,a.score,p.county,p.id,p.owner,p.owner_level,p.use_label,p.acres,p.vacant,p.zoning,a.z,p.max_du_per_acre,p.est_units,p.just_value,p.flood_zone,p.surplus_list,p.lat,p.lon,a.fail.concat(a.unknown).join("; "),p.appraiser_url].map(q).join(","))).join("\n")}
+$("csv").addEventListener("click",async()=>{const text=csvText();let dl=null;try{dl=window.claude&&await window.claude.use("downloads")}catch(e){}
+  if(dl){try{await dl.save({filename:"public-land-"+(data.generated_at||"list")+".csv",data:text});toast("List saved");return}catch(e){if(e&&e.code==="declined")return}}
+  $("copyBox").hidden=false;$("copyTa").value=text;$("copyTa").select();try{await navigator.clipboard.writeText(text);toast("List copied to clipboard")}catch(e){}});
+
+function setData(d,remember){data=d;selKey=null;writeCrit();readCrit();renderSources();renderChanges();render();if(remember){try{localStorage.setItem("plt_data",JSON.stringify(d))}catch(e){try{localStorage.removeItem("plt_data")}catch(_){ }}}}
+$("loadBtn").addEventListener("click",()=>$("file").click());
+$("file").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();
+  fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!d||!Array.isArray(d.parcels)||(d.parcels[0]&&!("owner" in d.parcels[0])))throw 0;setData(d,true);toast("Loaded "+fmt(d.parcels.length)+" parcels from "+f.name)}
+    catch(err){toast("That file is not a parcels.json from the refresh script. Nothing was changed.")}};fr.readAsText(f);e.target.value=""});
+$("exBtn").addEventListener("click",()=>{try{localStorage.removeItem("plt_data")}catch(e){}setData(EXAMPLE,false)});
+$("crit").addEventListener("input",()=>{readCrit();render()});
+$("show").addEventListener("change",renderTable);
+$("reset").addEventListener("click",()=>{C=JSON.parse(JSON.stringify(DEF));writeCrit();readCrit();render()});
+let saved=null;try{saved=JSON.parse(localStorage.getItem("plt_data"))}catch(e){}
+setData(saved&&Array.isArray(saved.parcels)?saved:EXAMPLE,false);
+})();
+</script>

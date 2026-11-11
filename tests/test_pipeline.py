@@ -1,0 +1,92 @@
+"""End-to-end offline test: run from the govland folder with  python3 tests/test_pipeline.py"""
+import csv, json, os, random, shutil, subprocess, sys, tempfile
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import core, mock_arcgis
+
+# --- unit checks on classification -------------------------------------------------
+L = lambda *a, **k: core.owner_level(*a, **k)[0]
+assert L("MIAMI-DADE COUNTY", 86) == "county"
+assert L("SCHOOL BOARD OF BROWARD COUNTY", 83) == "school"       # not 'county'
+assert L("CITY OF HIALEAH", 10) == "municipal"                    # miscoded use, caught by name
+assert L("TIITF/STATE OF FLORIDA", 87) == "state"
+assert L("UNITED STATES OF AMERICA", 88) == "federal"
+assert L("SOUTH FLORIDA WATER MANAGEMENT DISTRICT", 80) == "district"
+assert L("SMITH JOHN", 1) is None
+assert L("COUNTRY CLUB ESTATES LLC", 10) is None                  # 'COUNTRY' must not match 'COUNTY'
+assert L("ACME LLC", 80) == "other"                               # coded governmental, unknown owner
+assert L("ACME LLC", 1, "S") == "state"
+
+# --- end to end against the mock server, mixed free + paid-format sources ------------
+root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+tmp = tempfile.mkdtemp()
+rows = mock_arcgis.build()
+srv = mock_arcgis.serve(rows)
+url = "http://127.0.0.1:8765/arcgis/rest/services/Mock/FeatureServer/0"
+cfg = json.load(open(os.path.join(root, "config.json")))
+cfg["output"] = "out/parcels.json"
+for c in cfg["counties"].values():
+    c["providers"][0]["url"] = url
+# Miami-Dade comes from a Regrid-format bulk file instead: proves the swap needs config only.
+rnd, ZON = random.Random(3), [("RU-4", "multifamily"), ("BU-2", "commercial"), ("MC", "mixed-use"), ("RU-1", "single-family"), ("IU-1", "industrial"), ("GU", "other")]
+with open(os.path.join(tmp, "regrid_md.csv"), "w", newline="") as f:
+    w = csv.DictWriter(f, ["parcelnumb", "owner", "usecode", "ll_gisacre", "parval", "landval", "address", "scity", "lat", "lon", "zoning", "zoning_type", "fema_flood_zone", "struct", "taxyear"])
+    w.writeheader()
+    for r in rows:
+        if r["CO_NO"] == 23:
+            z = rnd.choice(ZON)
+            w.writerow(dict(parcelnumb=r["PARCEL_ID"], owner=r["OWN_NAME"], usecode=int(r["DOR_UC"]), ll_gisacre=round(r["LND_SQFOOT"] / 43560, 3),
+                            parval=r["JV"], landval=r["LND_VAL"], address=r["PHY_ADDR1"], scity=r["PHY_CITY"], lat=r["_c"]["y"], lon=r["_c"]["x"],
+                            zoning=z[0], zoning_type=z[1], fema_flood_zone=rnd.choice(["X", "X", "AE", "AH"]), struct="true" if r["NO_BULDNG"] else "false", taxyear=2026))
+b = "http://127.0.0.1:8765/arcgis/rest/services"
+cfg["zoning_sources"] = {"broward": [
+    {"jurisdiction": "Mock City", "url": b + "/City/MapServer/0", "code_field": "zonecode", "desc_field": "zonedesc", "enabled": True},
+    {"jurisdiction": "Dead Town", "url": "http://127.0.0.1:1/x/0", "code_field": "Z", "enabled": True},
+    {"jurisdiction": "Not ready", "url": b + "/City/MapServer/0", "code_field": "", "enabled": False},
+    {"jurisdiction": "Unincorporated", "url": b + "/County/MapServer/0", "code_field": "ZONECODE", "enabled": True}]}
+cfg["counties"]["miami-dade"]["providers"] = [{"type": "regrid_file", "name": "Example file in Regrid format", "path": "regrid_md.csv"}]
+with open(os.path.join(tmp, "zoning_density.csv"), "w") as f:
+    f.write("jurisdiction,zoning_code,category,max_du_per_acre,source_url\n"
+            "Mock City,RM-25,multifamily,25,example\nMock City,B-2,commercial,0,example\nUnincorporated,RM-25,multifamily,16,example\n"
+            "miami-dade,RU-4,multifamily,50,example\nmiami-dade,MC,mixed-use,125,example\nmiami-dade,BU-2,commercial,36,example\nmiami-dade,RU-1,single-family,6,example\n")
+with open(os.path.join(tmp, "surplus_parcels.csv"), "w") as f:
+    f.write("county,parcel_id,list_name,list_date,source_url\nmiami-dade,EX-23-0001,Example surplus list,2026-07-01,example\nmiami-dade,EX-23-0008,Example surplus list,2026-07-01,example\nbroward,EX-16-0003,Example surplus list,2026-07-01,example\n")
+json.dump(cfg, open(os.path.join(tmp, "config.json"), "w"))
+run = lambda: subprocess.run([sys.executable, os.path.join(root, "run.py"), "--config", os.path.join(tmp, "config.json")], capture_output=True, text=True)
+
+r1 = run(); print(r1.stdout, r1.stderr); assert r1.returncode == 0
+d1 = json.load(open(os.path.join(tmp, "out/parcels.json")))
+ids = {p["id"] for p in d1["parcels"]}
+gov_rows = [r for r in rows if not r["OWN_NAME"].startswith("EXAMPLE") and r["LND_SQFOOT"] / 43560 >= cfg["min_acres"]]
+assert ids == {r["PARCEL_ID"] for r in gov_rows}, "every government parcel, no private ones, paging complete"
+assert d1["changes"] == [], "first run has nothing to compare against"
+md = [p for p in d1["parcels"] if p["county"] == "miami-dade"]
+assert all(p["zoning"] for p in md) and any(p["est_units"] for p in md)
+br = [p for p in d1["parcels"] if p["county"] == "broward"]
+assert all(p["zoning"] in ("RM-25", "B-2") for p in br), "every Broward parcel got a zone from a layer"
+assert {p["zoning_jurisdiction"] for p in br} == {"Mock City", "Unincorporated"}
+assert all((p["lon"] > -80.25) == (p["zoning_jurisdiction"] == "Mock City") for p in br), "first covering layer wins"
+assert {p["max_du_per_acre"] for p in br if p["zoning"] == "RM-25"} == {25.0, 16.0}, "same code, different city, different density"
+assert all(p["zoning"] is None for p in d1["parcels"] if p["county"] == "palm-beach")
+mis = [p for p in d1["parcels"] if not p["coded_gov"]]
+assert mis and all(p["gov_basis"] == "owner name" for p in mis)
+
+# second run a "week later": sale, acquisition, re-coding
+srv.shutdown(); srv.server_close()
+srv = mock_arcgis.serve(mock_arcgis.build(mutate=True))
+r2 = run(); print(r2.stdout, r2.stderr); assert r2.returncode == 0
+d2 = json.load(open(os.path.join(tmp, "out/parcels.json")))
+kinds = sorted((c["type"], c["id"]) for c in d2["changes"])
+print(kinds)
+assert ("removed", "EX-16-0001") in kinds and ("added", "EX-16-0011") in kinds
+assert any(c["id"] == "EX-23-0000" for c in d2["changes"]) is False   # Miami-Dade file unchanged
+
+# outage: server down -> exit 1, last good data kept, no false "removed" for those counties
+srv.shutdown(); srv.server_close()
+r3 = run(); assert r3.returncode == 1
+d3 = json.load(open(os.path.join(tmp, "out/parcels.json")))
+assert len(d3["parcels"]) == len(d2["parcels"]) and len(d3["changes"]) == len(d2["changes"])
+d2["example"] = True
+json.dump(d2, open(os.path.join(root, "data", "example_parcels.json"), "w"), separators=(",", ":"))
+shutil.rmtree(tmp)
+print("ALL TESTS PASSED;", len(d2["parcels"]), "example parcels written")

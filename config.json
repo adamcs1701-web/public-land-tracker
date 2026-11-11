@@ -1,0 +1,199 @@
+{
+  "_readme": "Each county lists one or more providers, tried in order. Swap or add a paid source by changing 'type' here; nothing else in the pipeline changes.",
+  "output": "data/parcels.json",
+  "min_acres": 0.1,
+  "counties": {
+    "miami-dade": {
+      "label": "Miami-Dade",
+      "dor_county_no": 23,
+      "owner_patterns": [
+        "MIAMI-DADE COUNTY",
+        "MIAMI DADE COUNTY",
+        "DADE COUNTY"
+      ],
+      "appraiser_url": "https://www.miamidade.gov/Apps/PA/propertysearch/#/?folio={id}",
+      "providers": [
+        {
+          "type": "arcgis_dor",
+          "name": "FL statewide cadastral (DOR schema)",
+          "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0"
+        }
+      ]
+    },
+    "broward": {
+      "label": "Broward",
+      "dor_county_no": 16,
+      "owner_patterns": [
+        "BROWARD COUNTY"
+      ],
+      "appraiser_url": "https://bcpa.net/RecInfo.asp?URL_Folio={id}",
+      "providers": [
+        {
+          "type": "arcgis_dor",
+          "name": "FL statewide cadastral (DOR schema)",
+          "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0"
+        }
+      ]
+    },
+    "palm-beach": {
+      "label": "Palm Beach",
+      "dor_county_no": 60,
+      "owner_patterns": [
+        "PALM BEACH COUNTY"
+      ],
+      "appraiser_url": "https://pbcpao.gov/Property/Details?parcelId={id}",
+      "providers": [
+        {
+          "type": "arcgis_dor",
+          "name": "FL statewide cadastral (DOR schema)",
+          "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0"
+        }
+      ]
+    }
+  },
+  "paid_example": {
+    "_note": "To switch a county to Regrid, replace its providers list with one of these.",
+    "bulk_file": {
+      "type": "regrid_file",
+      "name": "Regrid bulk export",
+      "path": "regrid/fl_miami_dade.csv"
+    },
+    "api": {
+      "type": "regrid_api",
+      "name": "Regrid Parcel API",
+      "token_env": "REGRID_TOKEN",
+      "county_path": "/us/fl/miami-dade"
+    }
+  },
+  "zoning_density_table": "zoning_density.csv",
+  "surplus_list": "surplus_parcels.csv",
+  "zoning_sources": {
+    "_readme": "Each parcel's centre point is checked against these layers in order; the first layer that covers it wins. Set enabled to true once url and code_field are confirmed.",
+    "miami-dade": [
+      {
+        "jurisdiction": "City of Miami",
+        "url": "https://gis.miami.gov/gis/rest/services/Zoning/ZoningMiami21/MapServer/5",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "Layer confirmed (Primary Zoning). Code field name still to read."
+      },
+      {
+        "jurisdiction": "Hialeah",
+        "url": "https://hgis.hialeahfl.gov/arcgis/rest/services/Community_Development/Zoning_Layers/MapServer",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "Service has no single district layer; zone is stored per parcel (field ZONE). Needs a closer look."
+      },
+      {
+        "jurisdiction": "Miami Gardens",
+        "url": "",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "No public layer found yet."
+      },
+      {
+        "jurisdiction": "Miami Beach",
+        "url": "",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "No public layer found yet."
+      },
+      {
+        "jurisdiction": "Unincorporated Miami-Dade",
+        "url": "https://gisms.miamidade.gov/arcgis/rest/services/BusinessSiteSelection/MapServer/22",
+        "code_field": "ZONE",
+        "desc_field": "ZONE_DESC",
+        "enabled": true,
+        "note": "Confirmed 2026-11-11."
+      }
+    ],
+    "broward": [
+      {
+        "jurisdiction": "Fort Lauderdale",
+        "url": "https://gis.fortlauderdale.gov/arcgis/rest/services/ZoningGIS/LayerList/MapServer/15",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "Layer confirmed (Zoning Districts). Code field name still to read."
+      },
+      {
+        "jurisdiction": "Miramar",
+        "url": "https://smartcity.miramarfl.gov/server/rest/services/Hosted/MiramarZoningDistricts/FeatureServer/4",
+        "code_field": "zonecode",
+        "desc_field": "zonedesc",
+        "enabled": true,
+        "note": "Confirmed 2026-11-11. Layer says last update 01/16/2025."
+      },
+      {
+        "jurisdiction": "Hollywood",
+        "url": "",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "City GIS server exists; zoning layer not located."
+      },
+      {
+        "jurisdiction": "Pembroke Pines",
+        "url": "",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "Only a PDF map found."
+      },
+      {
+        "jurisdiction": "Pompano Beach",
+        "url": "",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "Only a PDF map found (dated 2026-01-27)."
+      },
+      {
+        "jurisdiction": "Unincorporated Broward",
+        "url": "",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "Only a PDF map found."
+      }
+    ],
+    "palm-beach": [
+      {
+        "jurisdiction": "West Palm Beach",
+        "url": "https://wpbgisportal.wpb.org/server/rest/services/Planning/Zoning_/FeatureServer/0",
+        "code_field": "ZONECLASS",
+        "desc_field": "ZONEDESC",
+        "enabled": true,
+        "note": "Confirmed 2026-11-11."
+      },
+      {
+        "jurisdiction": "Boca Raton",
+        "url": "https://bocagis.ci.boca-raton.fl.us/arcgis/rest/services/Hosted/DS_ZONING_DISTRICTS_WM/FeatureServer/0",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "Layer listed publicly but the server returned an error on 2026-11-11."
+      },
+      {
+        "jurisdiction": "Boynton Beach",
+        "url": "",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "City uses a third-party zoning viewer; no public layer found."
+      },
+      {
+        "jurisdiction": "Unincorporated Palm Beach County",
+        "url": "https://gis.pbcgov.org/arcgis/rest/services/PZB/ZONING/MapServer/0",
+        "code_field": "",
+        "desc_field": "",
+        "enabled": false,
+        "note": "Layer confirmed. Code field name still to read."
+      }
+    ]
+  }
+}
