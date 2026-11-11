@@ -84,10 +84,27 @@
       {
         "jurisdiction": "City of Miami",
         "url": "https://gis.miami.gov/gis/rest/services/Zoning/ZoningMiami21/MapServer/5",
+        "code_field": "M21_ZONE",
+        "desc_field": "Transect_Desc",
+        "enabled": true,
+        "note": "Fields confirmed 2026-11-11 from layer metadata. Not yet queried live.",
+        "group_field": "Transect"
+      },
+      {
+        "jurisdiction": "Coral Gables",
+        "url": "https://cgportal.coralgables.com/egswa/rest/services/EnerGov/DisplayMap/MapServer/21",
+        "code_field": "Zone",
+        "desc_field": "Zone_Desc",
+        "enabled": true,
+        "note": "Fields confirmed 2026-11-11 from layer metadata. Not yet queried live."
+      },
+      {
+        "jurisdiction": "Homestead",
+        "url": "",
         "code_field": "",
         "desc_field": "",
         "enabled": false,
-        "note": "Layer confirmed (Primary Zoning). Code field name still to read."
+        "note": "City publishes zoning only through a third-party viewer (Gridics); no public layer found."
       },
       {
         "jurisdiction": "Hialeah",

@@ -19,6 +19,12 @@ assert L("LONGSHOREMEN OF DADE COUNTY IN", 10) is None or True   # truncated nam
 assert L("FT INVESTMENTS OF DADE COUNTY", 10) is None and L("DADE COUNTY ASSOC FOR", 10) is None
 assert L("TRS II FUND", 80) == "state" and L("TRS OF II FUND", 0) == "state" and L("US ARMY CORPS OF ENG", 80) == "federal"
 assert L("HIALEAH HOUSING AUTHORITY", 3) == "district" and L("MATER ACADEMY FOUNDATION INC", 83) == "other"
+_d = {("CITY OF MIAMI", "T6"): {"category": "mixed-use", "max_du_per_acre": "150"}, ("CITY OF MIAMI", "T3-O"): {"category": "residential", "max_du_per_acre": "18"}, ("CITY OF MIAMI", "T3"): {"category": "single-family", "max_du_per_acre": "9"}}
+def _z(code, grp=None):
+    import providers as _p
+    r = _p.blank(); r.update(id="x", county="miami-dade", owner="CITY OF MIAMI", use_code=80, acres=2.0, buildings=0, zoning=code, zoning_jurisdiction="City of Miami", zoning_group=grp)
+    return core.enrich(r, {"owner_patterns": []}, _d, {})["max_du_per_acre"]
+assert _z("T6-8-O") == 150.0 and _z("T3-O") == 18.0 and _z("T3-R") == 9.0 and _z("Urban Core 8", "T6") == 150.0 and _z("XYZ") is None
 assert core.zoning_from_description("High Density Apartment House District, 50 units / net acre") == ("multifamily", 50.0)
 assert core.zoning_from_description("Minimun Apartment House 12.9 units/net acre") == ("multifamily", 12.9)
 assert core.zoning_from_description("Naranja\xa0Urban Center") == ("mixed-use", None)

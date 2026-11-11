@@ -110,15 +110,12 @@ def enrich(rec, county_cfg, density, surplus):
     out.update(owner_level=lvl, gov_basis=basis, vacant=vacant,
                use_label=USE_LABELS.get(uc, "Non-governmental use code %s" % uc if uc is not None else "Unknown"),
                leased=(uc == 90), coded_gov=uc is not None and 80 <= uc <= 89)
-    zc = (rec["zoning"] or "").upper()
-    if (rec["zoning"] or "").strip().upper() in ("NONE", "N/A", ""):
-        out["zoning"] = rec["zoning"] = None
-    if rec["zoning"] and rec.get("zoning_description"):
-        cat, du = zoning_from_description(rec["zoning_description"])
-        out["zoning_category"] = out["zoning_category"] or cat
-        if out["max_du_per_acre"] is None:
-            out["max_du_per_acre"] = du
-    z = density.get(((rec.get("zoning_jurisdiction") or "").upper(), zc)) or density.get((rec["county"].upper(), zc))
+    zc = (rec["zoning"] or "").upper().strip()
+    jur = (rec.get("zoning_jurisdiction") or "").upper()
+    # exact code first, then progressively broader: "T6-8-O" -> "T6-8" -> "T6", then the layer's own group field
+    parts = zc.split("-")
+    tries = [zc] + ["-".join(parts[:n]) for n in range(len(parts) - 1, 0, -1)] + [(rec.get("zoning_group") or "").upper().strip()]
+    z = next((density[k] for t in tries if t for k in ((jur, t), (rec["county"].upper(), t)) if k in density), None)
     out["max_du_per_acre_high"] = out["density_note"] = None
     if z:      # the hand-checked table wins over what the layer description implied
         out["zoning_category"] = z.get("category") or out["zoning_category"]
@@ -167,13 +164,13 @@ def diff(old, new, today, failed_counties=()):
 
 def zoning_lookup(lat, lon, sources, stats=None):
     """Ask each enabled zoning layer which zone contains this point. Returns
-    (jurisdiction, code, description) from the first layer that covers it, else None.
+    (jurisdiction, code, description, group) from the first layer that covers it, else None.
     A layer that errors is skipped for the rest of the run so one dead server
     cannot stall the refresh."""
     for s in sources:
         if not (s.get("enabled") and s.get("url") and s.get("code_field")) or s.get("_dead"):
             continue
-        fields = s["code_field"] + ("," + s["desc_field"] if s.get("desc_field") else "")
+        fields = ",".join(f for f in (s["code_field"], s.get("desc_field"), s.get("group_field")) if f)
         try:
             d = providers._get_json(s["url"].rstrip("/") + "/query", {
                 "geometry": "%s,%s" % (lon, lat), "geometryType": "esriGeometryPoint", "inSR": 4326,
@@ -187,7 +184,9 @@ def zoning_lookup(lat, lon, sources, stats=None):
             a = {k.lower(): v for k, v in feats[0]["attributes"].items()}
             code = a.get(s["code_field"].lower())
             if code not in (None, ""):
-                return s["jurisdiction"], str(code).strip(), (a.get((s.get("desc_field") or "").lower()) or None)
+                grp = a.get((s.get("group_field") or "").lower())
+                return (s["jurisdiction"], str(code).strip(), (a.get((s.get("desc_field") or "").lower()) or None),
+                        str(grp).strip() if grp not in (None, "") else None)
     return None
 
 

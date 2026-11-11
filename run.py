@@ -67,12 +67,12 @@ for ckey, ccfg in cfg["counties"].items():
                 prev_rec = old.get(ckey + "|" + rec["id"])
                 if (not rec["zoning"] and prev_rec and prev_rec.get("zoning") and prev_rec.get("lat") == rec["lat"]
                         and prev_rec.get("last_seen", "") >= zoning_recheck_after):
-                    for f in ("zoning", "zoning_jurisdiction", "zoning_description"):   # reuse a recent answer
+                    for f in ("zoning", "zoning_jurisdiction", "zoning_description", "zoning_group"):   # reuse a recent answer
                         rec[f] = prev_rec.get(f)
                 if not rec["zoning"] and rec["lat"] is not None and zsrc:
                     hit = core.zoning_lookup(rec["lat"], rec["lon"], zsrc)
                     if hit:
-                        rec["zoning_jurisdiction"], rec["zoning"], rec["zoning_description"] = hit
+                        rec["zoning_jurisdiction"], rec["zoning"], rec["zoning_description"], rec["zoning_group"] = hit
                 return rec
             with ThreadPoolExecutor(max_workers=8) as pool:
                 recs = list(pool.map(add_zoning, recs))
