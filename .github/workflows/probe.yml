@@ -11,4 +11,4 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -u tools/probe.py "${{ inputs.url }}"
+      - run: python3 -u tools/probe2.py "${{ inputs.url }}"
