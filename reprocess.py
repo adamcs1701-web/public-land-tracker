@@ -13,7 +13,7 @@ keep, dropped = [], 0
 for p in doc["parcels"]:
     rec = dict(p); rec["zoning_category"] = None; rec["max_du_per_acre"] = None
     r = core.enrich(rec, cfg["counties"][p["county"]], density, surplus)
-    if r is None:
+    if r is None or r["owner_level"] in set(cfg.get("exclude_owner_levels", [])):
         dropped += 1
         continue
     for k in ("provider", "last_seen", "first_seen"):
@@ -23,4 +23,4 @@ doc["parcels"] = keep
 for s in doc["sources"]:
     s["parcels"] = sum(1 for p in keep if p["county"] == s["county"])
 json.dump(doc, open(path, "w"), separators=(",", ":"))
-print("kept %d, dropped %d as not government" % (len(keep), dropped))
+print("kept %d, dropped %d (not government, or an excluded owner type)" % (len(keep), dropped))

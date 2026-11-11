@@ -2,6 +2,10 @@
   "_readme": "Each county lists one or more providers, tried in order. Swap or add a paid source by changing 'type' here; nothing else in the pipeline changes.",
   "output": "data/parcels.json",
   "min_acres": 0.1,
+  "exclude_owner_levels": [
+    "federal"
+  ],
+  "_exclude_note": "Owner types dropped from the dataset entirely. Options: federal, state, county, municipal, school, district, other.",
   "counties": {
     "miami-dade": {
       "label": "Miami-Dade",

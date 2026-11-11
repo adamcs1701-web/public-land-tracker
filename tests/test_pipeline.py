@@ -38,6 +38,7 @@ srv = mock_arcgis.serve(rows)
 url = "http://127.0.0.1:8765/arcgis/rest/services/Mock/FeatureServer/0"
 cfg = json.load(open(os.path.join(root, "config.json")))
 cfg["output"] = "out/parcels.json"
+cfg["exclude_owner_levels"] = []
 for c in cfg["counties"].values():
     c["providers"][0]["url"] = url
 # Miami-Dade comes from a Regrid-format bulk file instead: proves the swap needs config only.

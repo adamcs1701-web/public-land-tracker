@@ -18,7 +18,8 @@ today = datetime.date.today().isoformat()
 
 prev = json.load(open(out_path)) if os.path.exists(out_path) else {"parcels": [], "changes": []}
 key = lambda r: r["county"] + "|" + r["id"]
-old = {key(r): r for r in prev["parcels"]}
+EXCLUDE = set(cfg.get("exclude_owner_levels", []))
+old = {key(r): r for r in prev["parcels"] if r.get("owner_level") not in EXCLUDE}
 density = core.load_table(rel(cfg.get("zoning_density_table")), ("jurisdiction", "zoning_code"))
 surplus = core.load_table(rel(cfg.get("surplus_list")), ("county", "parcel_id"))
 
@@ -29,6 +30,7 @@ wanted = set(args.only.split(",")) if args.only else None
 for ckey, ccfg in cfg["counties"].items():
     if wanted and ckey not in wanted:
         new.update({k: r for k, r in old.items() if r["county"] == ckey})
+        sources.extend(s for s in prev.get("sources", []) if s.get("county") == ckey)
         continue
     ok = False
     for pcfg in ccfg["providers"]:
@@ -64,7 +66,7 @@ for ckey, ccfg in cfg["counties"].items():
                 recs = list(pool.map(add_zoning, recs))
             for rec in recs:
                 r = core.enrich(rec, ccfg, density, surplus)
-                if r:
+                if r and r["owner_level"] not in EXCLUDE:
                     r["provider"], r["last_seen"] = prov.name, today
                     got[key(r)] = r
                     n_kept += 1

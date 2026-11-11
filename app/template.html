@@ -108,7 +108,7 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
   <header>
     <div>
       <h1>Florida Public Land Tracker</h1>
-      <p class="sub">Government-owned parcels in Miami-Dade, Broward and Palm Beach, sorted by how well they fit your criteria for public-private development.</p>
+      <p class="sub">State, county, city, school board and special district land in Miami-Dade, Broward and Palm Beach, sorted by how well they fit your criteria for public-private development.</p>
     </div>
     <div class="actions">
       <input type="file" id="file" accept=".json,application/json" hidden>
@@ -233,7 +233,7 @@ function readCrit(){["minAc","maxAc","minDu","minUnits"].forEach(k=>C[k]=$(k).va
 function writeCrit(){["minAc","maxAc","minDu","minUnits"].forEach(k=>$(k).value=C[k]);
   ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly"].forEach(k=>$(k).checked=!!C[k]);
   const chips=(id,vals,lab,on)=>{$(id).replaceChildren(...vals.map(v=>{const i=el("input",{type:"checkbox",value:v,id:id+"_"+v});i.checked=!on||on.includes(v);return el("label",null,[i,lab(v)])}))};
-  chips("zon",ZCATS,v=>v[0].toUpperCase()+v.slice(1),C.zon); chips("own",OWNERS,v=>OWNLAB[v],C.own);
+  chips("zon",ZCATS,v=>v[0].toUpperCase()+v.slice(1),C.zon); const present=new Set(data.parcels.map(p=>p.owner_level)); chips("own",OWNERS.filter(v=>present.has(v)),v=>OWNLAB[v],C.own);
   const cs=[...new Set(data.parcels.map(p=>p.county))]; const labs={}; (data.sources||[]).forEach(s=>labs[s.county]=s.label);
   chips("cty",cs,v=>labs[v]||v,C.cty&&C.cty.filter(x=>cs.includes(x)).length?C.cty:null)}
 
