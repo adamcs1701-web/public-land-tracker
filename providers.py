@@ -12,7 +12,7 @@ LEASEHOLD_CODE = 90                    # gov-owned land leased to a private part
 FIELDS = ["id", "county", "owner", "use_code", "acres", "buildings", "just_value",
           "land_value", "address", "city", "lat", "lon", "public_land_flag",
           "zoning", "zoning_category", "max_du_per_acre", "flood_zone", "roll_year",
-          "zoning_jurisdiction", "zoning_description", "inside_boundary"]
+          "zoning_jurisdiction", "zoning_description", "inside_boundary", "owner_line2"]
 
 
 def blank():
@@ -71,7 +71,7 @@ class ArcGISDorProvider(Provider):
     Two passes: (1) parcels coded governmental, (2) parcels whose owner name looks
     governmental but were coded something else."""
     OUT = ("PARCEL_ID,CO_NO,OWN_NAME,DOR_UC,LND_SQFOOT,NO_BULDNG,JV,LND_VAL,"
-           "PHY_ADDR1,PHY_CITY,PUBLIC_LND,ASMNT_YR")
+           "PHY_ADDR1,PHY_CITY,PUBLIC_LND,ASMNT_YR,OWN_ADDR1")
     # Server-side net for government owners whose parcels are NOT coded 80-89.
     # Deliberately loose: core.owner_level() makes the final call on each row.
     NAME_TERMS = ["UNITED STATES", "STATE OF FL", "TIITF", "INTERNAL IMPROVEMENT", "CITY OF ", "TOWN OF ",
@@ -79,7 +79,9 @@ class ArcGISDorProvider(Provider):
                   "WATER MANAGEMENT", "WATER MGMT", "SFWMD", "II FUND", "REDEVELOPMENT", " CRA", "DEPT OF TRANSPORTATION",
                   "DEPARTMENT OF TRANSPORTATION", "FDOT", "EXPRESSWAY", "TRANSPORTATION AUTH",
                   "HOSPITAL DIST", "HEALTH CARE DIST", "DRAINAGE DIST", "IMPROVEMENT DIST",
-                  "PORT AUTH", "AIRPORT AUTH"]
+                  "PORT AUTH", "AIRPORT AUTH", "AVIATION DEP", "PUBLIC HOUSING", "WATER AND SEWER",
+                  "WATER & SEWER", "PARKS AND REC", "PARKS & REC", "OFF ST PARKING", "OFF STREET PARKING",
+                  "STATE ROAD DEPT", "FLORIDA DEPARTMENT OF", "SOUTHEAST OVERTOWN", "PUBLIC HEALTH TRUST"]
 
     def __init__(self, *a):
         super().__init__(*a)
@@ -188,7 +190,7 @@ class ArcGISDorProvider(Provider):
                  just_value=_num(a.get("JV")), land_value=_num(a.get("LND_VAL")),
                  address=(a.get("PHY_ADDR1") or "").strip(), city=(a.get("PHY_CITY") or "").strip(),
                  lat=lat, lon=lon, public_land_flag=(a.get("PUBLIC_LND") or "").strip() or None,
-                 roll_year=a.get("ASMNT_YR"))
+                 roll_year=a.get("ASMNT_YR"), owner_line2=(a.get("OWN_ADDR1") or "").strip() or None)
         return r
 
 

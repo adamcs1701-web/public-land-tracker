@@ -24,6 +24,15 @@ assert core.zoning_from_description("Minimun Apartment House 12.9 units/net acre
 assert core.zoning_from_description("Naranja\xa0Urban Center") == ("mixed-use", None)
 assert core.zoning_from_description("Single-family Residential District 7,500 ft2 net") == ("single-family", None)
 assert core.zoning_from_description("Interim District - Uses depend on character of neighborhood") == ("other", None)
+assert L("MIAMI DADE AVIATION DEPT", 10) == "county" and L("PUBLIC HOUSING & COMMUNITY DEV", 0) == "county"
+assert L("PARKS AND RECREATION", 0) == "county" and L("WATER AND SEWER DEPT", 0) == "county"
+assert L("DEPARTMENT OF OFF ST PARKING", 10) == "municipal" and L("STATE ROAD DEPT", 0) == "state"
+assert L("U S DEPT OF AGRICULTURE", 80) == "federal" and L("SOUTHEAST OVERTOWN PARK WEST", 10) == "district"
+assert L("MIAMI SHORES VILLAGE", 89) == "municipal" and L("MIAMI DADE", 86) == "county"
+assert L("PARKSIDE VILLAGE CONDO ASSN", 4) is None and L("WATERFORD PARKS LLC", 10) is None
+assert core.department_of("WATER AND SEWER DEPT", "MIAMI-DADE COUNTY") == "Water And Sewer Dept"
+assert core.department_of("111 NW 1ST ST STE 2460", "MIAMI-DADE COUNTY") is None
+assert core.department_of(None, "CITY OF MIAMI-DEPT OF P&D") == "Dept Of P&D"
 assert L("SMITH JOHN", 1) is None
 assert L("COUNTRY CLUB ESTATES LLC", 10) is None                  # 'COUNTRY' must not match 'COUNTY'
 assert L("ACME LLC", 80) == "other"                               # coded governmental, unknown owner

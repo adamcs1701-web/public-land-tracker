@@ -10,10 +10,11 @@ USE_LABELS = {80: "Vacant governmental", 81: "Military", 82: "Forest, park, recr
 # First match wins, so order matters (school boards before counties, etc.).
 OWNER_RULES = [
     ("school", r"SCHOOL (BOARD|DISTRICT)|BOARD OF PUBLIC INSTRUCTION|\bSBBC\b"),
-    ("federal", r"\bU ?S ARMY|ARMY CORPS|CORPS? OF ENG|\bUSA\b|BIG CYPRESS|NATL PARK|NATIONAL PARK|DEPT OF (THE )?INTERIOR|UNITED STATES|\bU ?S ?A\b|\bU S GOVERNMENT|US DEPT|FEDERAL AVIATION|POSTAL SERVICE"),
-    ("state", r"\bSTATE OF FL|\bTIIT?F\b|\bTRS? (OF )?(THE )?I ?I (TRUST )?FUND|TRS OF THE INTERNAL|INTERNAL IMPROVEMENT|\bFDOT\b|DEP(T|ARTMENT) OF TRANSPORTATION|BOARD OF TRUSTEES OF THE|UNIVERSITY BOARD|BOARD OF REGENTS"),
-    ("district", r"WATER (MANAGEMENT|MGMT|MGT)|(SOUTH|SO) (FLA|FLORIDA|FL) WATER|\bSFWMD\b|HOUSING AUTH|REDEVELOPMENT (AGENCY|AGY|AUTH)|COMMUNITY REDEVELOP|\bC ?R ?A$|\bCRA\b|DRAINAGE DIST|EXPRESSWAY|PORT (OF|AUTHORITY)|AIRPORT AUTH|TRANSPORTATION AUTH|HOSPITAL DIST|HEALTH CARE DIST|IMPROVEMENT DIST"),
-    ("municipal", r"\b(CITY|TOWN|VILLAGE) OF\b"),
+    ("federal", r"\bU ?S DEPT|\bU ?S ARMY|ARMY CORPS|CORPS? OF ENG|\bUSA\b|BIG CYPRESS|NATL PARK|NATIONAL PARK|DEPT OF (THE )?INTERIOR|UNITED STATES|\bU ?S ?A\b|\bU S GOVERNMENT|US DEPT|FEDERAL AVIATION|POSTAL SERVICE"),
+    ("state", r"\bSTATE OF FL|STATE ROAD DEPT|^FLORIDA DEP(T|ARTMENT) OF|\bTIIT?F\b|\bTRS? (OF )?(THE )?I ?I (TRUST )?FUND|TRS OF THE INTERNAL|INTERNAL IMPROVEMENT|\bFDOT\b|DEP(T|ARTMENT) OF TRANSPORTATION|BOARD OF TRUSTEES OF THE|UNIVERSITY BOARD|BOARD OF REGENTS"),
+    ("district", r"SOUTHEAST OVERTOWN|OMNI (CRA|REDEV)|WATER (MANAGEMENT|MGMT|MGT)|(SOUTH|SO) (FLA|FLORIDA|FL) WATER|\bSFWMD\b|HOUSING AUTH|REDEVELOPMENT (AGENCY|AGY|AUTH)|COMMUNITY REDEVELOP|\bC ?R ?A$|\bCRA\b|DRAINAGE DIST|EXPRESSWAY|PORT (OF|AUTHORITY)|AIRPORT AUTH|TRANSPORTATION AUTH|HOSPITAL DIST|HEALTH CARE DIST|IMPROVEMENT DIST"),
+    ("municipal", r"\b(CITY|TOWN|VILLAGE) OF\b|OFF[- ]ST(REET)? PARKING|\bVILLAGE$"),
+    ("county", r"^(MIAMI[- ]DADE|BROWARD|PALM BEACH)( COUNTY)?( (AVIATION|TRANSIT|HOUSING|PARKS?|WATER|PUBLIC|FIRE|POLICE|SEAPORT|LIBRARY|DERM|GSA|ISD)|$)|PUBLIC HOUSING (&|AND) COMM|WATER (&|AND) SEWER|PARKS? (&|AND) REC|AVIATION DEP|SOLID WASTE|PUBLIC WORKS DEP|PUBLIC HEALTH TRUST|AFFORDABLE HOUSING (&|AND) COMM"),
     ("county", r"\bCOUNTY\b"),
 ]
 _RULES = [(lvl, re.compile(rx)) for lvl, rx in OWNER_RULES]
@@ -66,6 +67,23 @@ def owner_level(owner, use_code=None, public_flag=None, county_patterns=()):
     return None, None
 
 
+DEPT_RX = re.compile(r"DEP(T|ARTMENT)\b|DIVISION|\bDIV\b|PARKS?\b|RECREATION|WATER|SEWER|AVIATION|TRANSIT|HOUSING|PUBLIC WORKS|"
+                     r"SEAPORT|LIBRAR|FIRE|POLICE|REAL ESTATE|ASSET M|FACILIT|INTERNAL SERV|\bISD\b|\bGSA\b|\bDERM\b|"
+                     r"\bWASD\b|\bPHCD\b|\bCRA\b|REDEVELOP|SCHOOL|PLANNING|ECONOMIC|TRANSPORTATION|RIGHT OF WAY|R/W")
+
+
+def department_of(line2, owner=""):
+    """The holding department, when the tax roll puts it on the owner's first address line
+    ("MIAMI-DADE COUNTY" / "WATER AND SEWER DEPT") or after a slash or dash in the name."""
+    s = (line2 or "").strip().upper()
+    if s and not re.match(r"^(\d|P ?O ?BOX|C/O|%|ATTN)", s) and DEPT_RX.search(s):
+        return s.title()
+    m = re.search(r"[/%-]\s*(.+)$", (owner or "").upper())
+    if m and DEPT_RX.search(m.group(1)):
+        return m.group(1).strip().title()
+    return None
+
+
 def load_table(path, key_fields):
     out = {}
     if path and os.path.exists(path):
@@ -88,6 +106,7 @@ def enrich(rec, county_cfg, density, surplus):
     else:
         vacant = rec["buildings"] == 0 and (uc == 80 or jv - lv <= max(0.05 * jv, 10000))
     out = dict(rec)
+    out["department"] = department_of(rec.get("owner_line2"), rec["owner"])
     out.update(owner_level=lvl, gov_basis=basis, vacant=vacant,
                use_label=USE_LABELS.get(uc, "Non-governmental use code %s" % uc if uc is not None else "Unknown"),
                leased=(uc == 90), coded_gov=uc is not None and 80 <= uc <= 89)
