@@ -70,7 +70,6 @@ class ArcGISDorProvider(Provider):
     the statewide cadastral layer, or a county layer that keeps the DOR field names.
     Two passes: (1) parcels coded governmental, (2) parcels whose owner name looks
     governmental but were coded something else."""
-    PAGE = 1000
     OUT = ("PARCEL_ID,CO_NO,OWN_NAME,DOR_UC,LND_SQFOOT,NO_BULDNG,JV,LND_VAL,"
            "PHY_ADDR1,PHY_CITY,PUBLIC_LND,ASMNT_YR")
     NAME_TERMS = ["UNITED STATES", "STATE OF FLORIDA", "TIITF", "CITY OF ", "TOWN OF ",
@@ -97,34 +96,60 @@ class ArcGISDorProvider(Provider):
                 return f.get("type", "")
         return ""
 
-    def _wheres(self):
-        co = self.county["dor_county_no"]
+    WINDOW = 100000
+
+    def _clauses(self):
         codes = list(GOV_USE_CODES) + [LEASEHOLD_CODE]
         if "String" in self._field_type("DOR_UC"):
             vals = ",".join("'%03d','%02d'" % (c, c) for c in codes)
         else:
             vals = ",".join(str(c) for c in codes)
-        co_sql = "'%s'" % co if "String" in self._field_type("CO_NO") else str(co)
-        base = "CO_NO=%s" % co_sql
-        yield "%s AND DOR_UC IN (%s)" % (base, vals)
+        yield "DOR_UC IN (%s)" % vals
         terms = self.NAME_TERMS + self.county.get("owner_patterns", [])
         likes = " OR ".join("OWN_NAME LIKE '%%%s%%'" % t.replace("'", "''") for t in terms)
-        yield "%s AND DOR_UC NOT IN (%s) AND (%s)" % (base, vals, likes)
+        yield "DOR_UC NOT IN (%s) AND (%s)" % (vals, likes)
+
+    def _co_sql(self):
+        co = self.county["dor_county_no"]
+        return "CO_NO=%s" % ("'%s'" % co if "String" in self._field_type("CO_NO") else co)
+
+    def _oid_span(self):
+        """The statewide layer times out on plain county filters but answers instantly
+        when a query is bounded by OBJECTID, so find the county's OBJECTID span first."""
+        stats = json.dumps([{"statisticType": s, "onStatisticField": "OBJECTID", "outStatisticFieldName": n}
+                            for s, n in (("min", "lo"), ("max", "hi"))])
+        d = _get_json(self.url + "/query", {"where": self._co_sql(), "outStatistics": stats, "f": "json"})
+        a = {k.lower(): v for k, v in d["features"][0]["attributes"].items()}
+        if a.get("lo") is None:
+            raise RuntimeError("no parcels found for county number %s" % self.county["dor_county_no"])
+        return int(a["lo"]), int(a["hi"])
+
+    def _window(self, lo, hi, clause):
+        """Fetch one OBJECTID window; if the server truncates or rejects it, split it in half."""
+        where = "OBJECTID BETWEEN %d AND %d AND %s AND %s" % (lo, hi, self._co_sql(), clause)
+        try:
+            data = _get_json(self.url + "/query", {
+                "where": where, "outFields": self.OUT, "returnGeometry": "false",
+                "returnCentroid": "true", "outSR": 4326, "f": "json"}, timeout=150)
+        except RuntimeError:
+            if hi - lo < 2000:
+                raise
+            data = None
+        if data is not None and not data.get("exceededTransferLimit"):
+            for ft in data.get("features", []):
+                yield self._normalize(ft)
+            return
+        if hi <= lo:
+            raise RuntimeError("single OBJECTID %d still truncated" % lo)
+        mid = (lo + hi) // 2
+        yield from self._window(lo, mid, clause)
+        yield from self._window(mid + 1, hi, clause)
 
     def fetch(self):
-        for where in self._wheres():
-            offset = 0
-            while True:
-                data = _get_json(self.url + "/query", {
-                    "where": where, "outFields": self.OUT, "returnGeometry": "false",
-                    "returnCentroid": "true", "outSR": 4326, "orderByFields": "OBJECTID",
-                    "resultOffset": offset, "resultRecordCount": self.PAGE, "f": "json"})
-                feats = data.get("features", [])
-                for ft in feats:
-                    yield self._normalize(ft)
-                if not feats or not (data.get("exceededTransferLimit") or len(feats) == self.PAGE):
-                    break
-                offset += len(feats)
+        lo, hi = self._oid_span()
+        for clause in self._clauses():
+            for start in range(lo, hi + 1, self.WINDOW):
+                yield from self._window(start, min(start + self.WINDOW - 1, hi), clause)
 
     def _normalize(self, ft):
         a = {k.upper(): v for k, v in ft["attributes"].items()}

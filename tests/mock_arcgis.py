@@ -42,6 +42,9 @@ def matches(row, where):
     co = int(re.search(r"CO_NO='?(\d+)", where).group(1))
     if row["CO_NO"] != co:
         return False
+    rng = re.search(r"OBJECTID BETWEEN (\d+) AND (\d+)", where)
+    if rng and not int(rng.group(1)) <= row["OBJECTID"] <= int(rng.group(2)):
+        return False
     codes = set(re.findall(r"'(\d{3})'", where.split("(")[1]))
     if "NOT IN" in where:
         terms = re.findall(r"LIKE '%(.*?)%'", where)
@@ -49,7 +52,7 @@ def matches(row, where):
     return row["DOR_UC"] in codes
 
 
-def serve(rows, port=8765, page_cap=25):
+def serve(rows, port=8765, page_cap=9):
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a): pass
         def do_GET(self):
@@ -59,12 +62,14 @@ def serve(rows, port=8765, page_cap=25):
                 east = lon > -80.25      # mock city covers the east half; west half is "unincorporated"
                 want_city = "/City/" in u.path
                 body = dict(features=[dict(attributes={"ZONECODE": "RM-25" if lat > 26.15 else "B-2", "ZONEDESC": "Mock zone"})] if east == want_city else [])
+            elif u.path.endswith("/query") and "outStatistics" in q:
+                ids = [r["OBJECTID"] for r in rows if r["CO_NO"] == int(re.search(r"CO_NO='?(\d+)", q["where"]).group(1))]
+                body = dict(features=[dict(attributes=dict(lo=min(ids), hi=max(ids)))])
             elif u.path.endswith("/query"):
                 hit = [r for r in rows if matches(r, q["where"])]
-                off, n = int(q.get("resultOffset", 0)), min(int(q.get("resultRecordCount", 1000)), page_cap)
-                page = hit[off:off + n]
+                page = hit[:page_cap]       # like the real server: truncate and flag, no paging
                 body = dict(features=[dict(attributes={k: v for k, v in r.items() if k != "_c"}, centroid=r["_c"]) for r in page],
-                            exceededTransferLimit=off + n < len(hit))
+                            exceededTransferLimit=len(hit) > page_cap)
             else:
                 body = dict(fields=[dict(name="DOR_UC", type="esriFieldTypeString"), dict(name="CO_NO", type="esriFieldTypeInteger")],
                             editingInfo=dict(dataLastEditDate=1792763246556))
