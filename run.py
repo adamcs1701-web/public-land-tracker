@@ -2,7 +2,7 @@
 """Refresh the government-land dataset.  Usage: python3 run.py [--config config.json]
 Schedule it weekly (cron / GitHub Actions); each run rewrites the output file and
 appends to its change log."""
-import argparse, datetime, json, os, sys
+import argparse, datetime, json, os, re, sys
 from concurrent.futures import ThreadPoolExecutor
 import core, providers
 
@@ -95,6 +95,22 @@ for ckey, ccfg in cfg["counties"].items():
                 return rec
             with ThreadPoolExecutor(max_workers=8) as pool:
                 recs = list(pool.map(add_zoning, recs))
+            lcfg = ccfg.get("land_use_source")
+            if lcfg:
+                skip = re.compile(lcfg["skip_if_zoning_matches"]) if lcfg.get("skip_if_zoning_matches") else None
+
+                def add_land_use(rec):
+                    pr = old.get(ckey + "|" + rec["id"])
+                    if pr and pr.get("land_use") and pr.get("lat") == rec["lat"] and pr.get("last_seen", "") >= zoning_recheck_after:
+                        rec["land_use"], rec["land_use_description"] = pr["land_use"], pr.get("land_use_description")
+                    elif not (skip and rec.get("zoning") and skip.search(rec["zoning"])):
+                        hit = core.land_use_lookup(rec["lat"], rec["lon"], lcfg)
+                        if hit:
+                            rec["land_use"], rec["land_use_description"] = hit
+                    return rec
+                with ThreadPoolExecutor(max_workers=6) as pool:
+                    recs = list(pool.map(add_land_use, recs))
+                print("%-11s %6d parcels got a future land use designation%s" % (ckey, sum(1 for x in recs if x.get("land_use")), " (server gave up partway)" if lcfg.get("_dead") else ""), flush=True)
             for rec in recs:
                 r = core.enrich(rec, ccfg, density, surplus)
                 if r:

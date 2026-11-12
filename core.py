@@ -27,6 +27,8 @@ PUBLIC_LND = {"F": "federal", "S": "state", "T": "state", "C": "county", "M": "m
 # "UNITED STATES DEVELOPMENT LTD", "LONGSHOREMEN OF DADE COUNTY INC").
 PRIVATE = re.compile(r"\b(LLC|L L C|INC|LTD|CORP(?! OF ENG)|LLP|LP|ASSOC|ASSN|FOUNDATION|PARTNERS|PARTNERSHIP|HOLDINGS|INVESTMENTS|CHURCH|CLUB)\b|\bCONDO|\b(ASSOC|INVESTMENTS|LONGSHOREMEN|BANK) (FOR|OF)\b")
 
+OPEN_RX = re.compile(r"open space|recreation|conservation|preserv|\bparks\b|public park")
+OPEN_CODES = {"ROS", "OS", "OSR", "CON", "CONS", "REC", "PR", "UOS"}      # common park / open space / conservation zone codes
 ZONE_WORDS = [("mixed-use", ("urban center", "urban area district", "corridor district", "mixed use", "traditional neighborhood")),
               ("multifamily", ("apartment", "multi-family", "multifamily", "multiple family")),
               ("residential", ("townhouse", "two-family", "duplex", "bungalow")),
@@ -42,7 +44,7 @@ def zoning_from_description(desc):
     d = (desc or "").replace("\xa0", " ").lower()
     if not d.strip():
         return None, None
-    cat = next((c for c, words in ZONE_WORDS if any(w in d for w in words)), "other")
+    cat = "open space" if OPEN_RX.search(d) else next((c for c, words in ZONE_WORDS if any(w in d for w in words)), "other")
     m = DENSITY_RX.search(d)
     return cat, (float(m.group(1)) if m else None)
 USE_LEVEL = {81: "federal", 83: "school", 86: "county", 87: "state", 88: "federal", 89: "municipal"}
@@ -122,6 +124,8 @@ def enrich(rec, county_cfg, density, surplus):
         out["zoning_category"] = out["zoning_category"] or cat
         if out["max_du_per_acre"] is None:
             out["max_du_per_acre"] = du
+    if rec["zoning"] and re.sub(r"\s*\(CITY\)$", "", rec["zoning"].upper().strip()).split("/")[0] in OPEN_CODES:
+        out["zoning_category"] = "open space"
     zc = (rec["zoning"] or "").upper().strip()
     jur = (rec.get("zoning_jurisdiction") or "").upper()
     # exact code first, then progressively broader: "T6-8-O" -> "T6-8" -> "T6", then the layer's own group field
@@ -137,6 +141,16 @@ def enrich(rec, county_cfg, density, surplus):
             except (KeyError, ValueError, TypeError):
                 pass
         out["density_note"] = (z.get("note") or "").strip() or None
+    lu = county_cfg.get("land_use_source") or {}
+    if out.get("zoning") and "(city)" in out["zoning"]:
+        out["zoning_jurisdiction"] = "A city, via the county's zoning layer"
+    if out.get("land_use") and lu.get("density_regex") and out["max_du_per_acre"] is None:
+        m = re.search(lu["density_regex"], out["land_use"].upper())
+        if m:
+            out["max_du_per_acre"] = float(m.group(1))
+            out["density_note"] = "From the future land use designation %s, which sets residential density here." % out["land_use"]
+            if out.get("zoning_category") in (None, "other"):
+                out["zoning_category"] = "residential"
     d, ac = out["max_du_per_acre"], out["acres"]
     out["est_units"] = int(d * ac) if d and ac else None
     s = surplus.get((rec["county"].upper(), rec["id"].upper()))
@@ -215,6 +229,21 @@ def zoning_lookup(lat, lon, sources, stats=None):
                 return (s["jurisdiction"], str(code).strip(), (a.get((s.get("desc_field") or "").lower()) or None),
                         str(grp).strip() if grp not in (None, "") else None)
     return None
+
+
+def land_use_lookup(lat, lon, lcfg):
+    """Future land use designation at a point: (code, description) or None."""
+    if not (lcfg and lcfg.get("url")) or lcfg.get("_dead") or lat is None:
+        return None
+    fields = ",".join(f for f in (lcfg["code_field"], lcfg.get("desc_field")) if f)
+    d = _guarded(lcfg, {"geometry": "%s,%s" % (lon, lat), "geometryType": "esriGeometryPoint", "inSR": 4326,
+                        "spatialRel": "esriSpatialRelIntersects", "outFields": fields, "returnGeometry": "false", "f": "json"})
+    feats = (d or {}).get("features") or []
+    if not feats:
+        return None
+    a = {k.lower(): v for k, v in feats[0]["attributes"].items()}
+    code = a.get(lcfg["code_field"].lower())
+    return (str(code).strip(), a.get((lcfg.get("desc_field") or "").lower())) if code not in (None, "") else None
 
 
 def in_water(lat, lon, wcfg):

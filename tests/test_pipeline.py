@@ -32,6 +32,10 @@ assert core.zoning_from_description("High Density Apartment House District, 50 u
 assert core.zoning_from_description("Minimun Apartment House 12.9 units/net acre") == ("multifamily", 12.9)
 assert core.zoning_from_description("Naranja\xa0Urban Center") == ("mixed-use", None)
 assert core.zoning_from_description("Single-family Residential District 7,500 ft2 net") == ("single-family", None)
+assert core.zoning_from_description("Parks, Recreation and Open Space")[0] == "open space" and core.zoning_from_description("Conservation District")[0] == "open space"
+assert core.zoning_from_description("Industrial Park")[0] == "industrial" and core.zoning_from_description("Mobile Home Park")[0] != "open space"
+_lu = __import__("providers").blank(); _lu.update(id="z", county="palm-beach", owner="PALM BEACH COUNTY", use_code=80, acres=4.0, buildings=0, zoning="AR", land_use="HR-12")
+_e2 = core.enrich(_lu, {"owner_patterns": [], "land_use_source": {"density_regex": r"\b(?:LR|MR|HR)-?(\d+(?:\.\d+)?)\b"}}, {}, {}); assert _e2["max_du_per_acre"] == 12.0 and _e2["est_units"] == 48
 assert core.zoning_from_description("Interim District - Uses depend on character of neighborhood") == ("other", None)
 assert L("MIAMI DADE AVIATION DEPT", 10) == "county" and L("PUBLIC HOUSING & COMMUNITY DEV", 0) == "county"
 assert L("PARKS AND RECREATION", 0) == "county" and L("WATER AND SEWER DEPT", 0) == "county"

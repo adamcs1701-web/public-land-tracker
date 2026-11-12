@@ -174,7 +174,7 @@ function unpack(d){ if(!d.packed) return d; const k=d.packed,C=k.cols,D=k.dicts|
     p.vacant=p.vacant==null?null:!!p.vacant;p.leased=!!p.leased;const u=(d.appraiser_urls||{})[p.county];if(u)p.appraiser_url=u.replace("{id}",String(p.id).replace(/-/g,""));return p});
   delete d.packed;return d}
 let EXAMPLE={parcels:[],sources:[],changes:[]},GEO={dev:[],places:[]};
-const ZCATS=["mixed-use","multifamily","commercial","industrial","single-family","residential","agricultural","other"];
+const ZCATS=["mixed-use","multifamily","commercial","industrial","single-family","residential","agricultural","open space","other"];
 const ZW={"mixed-use":15,"multifamily":15,"commercial":12,"residential":8,"industrial":6,"single-family":4,"agricultural":2,"other":2};
 const OWNERS=["county","municipal","state","federal","school","district","other"];
 const OWNLAB={county:"County",municipal:"City",state:"State",federal:"Federal",school:"School board",district:"Special district",other:"Other"};
@@ -194,7 +194,7 @@ function el(tag,props,kids){const e=document.createElement(tag);if(props)for(con
 
 function zcat(p){ // fold any provider's zoning wording into one of our categories
   const s=((p.zoning_category||"")+"").toLowerCase(); if(!s) return null;
-  if(s.includes("mixed"))return"mixed-use"; if(s.includes("multi"))return"multifamily"; if(s.includes("single"))return"single-family";
+  if(s.includes("open space"))return"open space"; if(s.includes("mixed"))return"mixed-use"; if(s.includes("multi"))return"multifamily"; if(s.includes("single"))return"single-family";
   if(s.includes("commerc")||s.includes("office")||s.includes("business"))return"commercial"; if(s.includes("indus"))return"industrial";
   if(s.includes("resid"))return"residential"; if(s.includes("agri"))return"agricultural"; return"other"}
 
@@ -307,7 +307,7 @@ function renderDetail(){const r=rows.find(r=>key(r.p)===selKey),d=$("detail");if
   if(p.lat!=null){links.push(el("a",{href:"https://www.google.com/maps/search/?api=1&query="+p.lat+","+p.lon,target:"_blank",rel:"noopener",text:"Open in Google Maps"}));links.push(el("a",{href:"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint="+p.lat+","+p.lon,target:"_blank",rel:"noopener",text:"Street View"}))}
   d.replaceChildren(el("h2",null,[el("span",{class:"mono",text:p.id}),el("span",{class:"pill "+a.tier,text:TL[a.tier]}),el("span",{class:"lab",text:"Score "+a.score+" of 100"})]),
     el("dl",null,[dd("Owner",p.owner),dd("Owner type",(OWNLAB[p.owner_level]||"")+" · from "+p.gov_basis),dd("Department",p.department||"not stated"),dd("Location",[p.address,p.city].filter(Boolean).join(", ")),dd("County",labelOf(p.county)),dd("Recorded use",p.use_label),dd("Size",p.acres!=null?fmt(p.acres,2)+" acres":""),
-      dd("Zoning",p.zoning?p.zoning+(a.z?" ("+a.z+")":""):""),dd("Zoning source",p.zoning?[p.zoning_jurisdiction,p.zoning_description].filter(Boolean).join(": "):""),dd("Allowed density",p.max_du_per_acre!=null?(p.max_du_per_acre_high?p.max_du_per_acre+" to "+p.max_du_per_acre_high:p.max_du_per_acre)+" units/acre":""),dd("Density note",p.density_note||"none"),dd("Estimated yield",p.est_units!=null?fmt(p.est_units)+" units":""),dd("Just value",money(p.just_value)),dd("Flood zone",p.flood_zone),dd("First tracked",p.first_seen)]),
+      dd("Zoning",p.zoning?p.zoning+(a.z?" ("+a.z+")":""):""),dd("Future land use",p.land_use||"not looked up"),dd("Zoning source",p.zoning?[p.zoning_jurisdiction,p.zoning_description].filter(Boolean).join(": "):""),dd("Allowed density",p.max_du_per_acre!=null?(p.max_du_per_acre_high?p.max_du_per_acre+" to "+p.max_du_per_acre_high:p.max_du_per_acre)+" units/acre":""),dd("Density note",p.density_note||"none"),dd("Estimated yield",p.est_units!=null?fmt(p.est_units)+" units":""),dd("Just value",money(p.just_value)),dd("Flood zone",p.flood_zone),dd("First tracked",p.first_seen)]),
     el("ul",{class:"reasons"},[...a.fail.map(t=>el("li",{class:"fail",text:"Rules it out: "+t})),...a.unknown.map(t=>el("li",{class:"fail",text:"Check: "+t})),...a.pass.map(t=>el("li",{text:"Fits: "+t}))]),
     el("div",{class:"links"},links))}
 

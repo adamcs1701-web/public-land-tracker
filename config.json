@@ -84,6 +84,16 @@
         "file": "boundaries/palm_beach_urban_suburban_tier.geojson",
         "drop_outside": true,
         "_note": "Palm Beach County Managed Growth Tier System. Only the tier named URBAN/SUBURBAN TIER is kept; the separate URBAN/SUBURBAN GLADES TIER is not."
+      },
+      "land_use_source": {
+        "name": "Palm Beach County future land use",
+        "url": "https://pbcmaps.pbcgov.org/arcgis/rest/services/OpenData/Planning_Open_Data/MapServer/6",
+        "code_field": "FLU_CODE",
+        "desc_field": "FLU_DESC",
+        "max_parallel": 3,
+        "density_regex": "\\b(?:LR|MR|HR)-?(\\d+(?:\\.\\d+)?)\\b",
+        "skip_if_zoning_matches": "\\(city\\)",
+        "_note": "In unincorporated Palm Beach County residential density comes from the future land use designation (LR-2, MR-5, HR-12...): the number is the maximum units per acre. Not applied to parcels whose zoning is a city's."
       }
     }
   },

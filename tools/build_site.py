@@ -8,9 +8,9 @@ cfg = json.load(open(os.path.join(root, "config.json")))
 skip = set(cfg.get("exclude_owner_levels", []))
 cols = ["id", "county", "owner", "owner_level", "gov_basis", "use_code", "use_label", "acres", "vacant", "just_value",
         "address", "city", "lat", "lon", "zoning", "zoning_category", "max_du_per_acre", "est_units", "flood_zone",
-        "surplus_list", "leased", "first_seen", "zoning_jurisdiction", "zoning_description", "department", "max_du_per_acre_high", "density_note"]
+        "surplus_list", "leased", "first_seen", "zoning_jurisdiction", "zoning_description", "department", "max_du_per_acre_high", "density_note", "land_use"]
 dc = ["county", "owner", "owner_level", "gov_basis", "use_label", "city", "zoning", "zoning_category", "surplus_list",
-      "first_seen", "zoning_jurisdiction", "zoning_description", "flood_zone", "department", "density_note"]
+      "first_seen", "zoning_jurisdiction", "zoning_description", "flood_zone", "department", "density_note", "land_use"]
 dicts, idx, rows = {c: [] for c in dc}, {c: {} for c in dc}, []
 def enc(c, v):
     if v is None: return None
