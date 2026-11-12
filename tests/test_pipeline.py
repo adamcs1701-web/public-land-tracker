@@ -36,6 +36,12 @@ assert core.zoning_from_description("Parks, Recreation and Open Space")[0] == "o
 assert core.zoning_from_description("Industrial Park")[0] == "industrial" and core.zoning_from_description("Mobile Home Park")[0] != "open space"
 _lu = __import__("providers").blank(); _lu.update(id="z", county="palm-beach", owner="PALM BEACH COUNTY", use_code=80, acres=4.0, buildings=0, zoning="AR", land_use="HR-12")
 _e2 = core.enrich(_lu, {"owner_patterns": [], "land_use_source": {"density_regex": r"\b(?:LR|MR|HR)-?(\d+(?:\.\d+)?)\b"}}, {}, {}); assert _e2["max_du_per_acre"] == 12.0 and _e2["est_units"] == 48
+_b = __import__("providers").blank(); _b.update(id="b", county="broward", owner="BROWARD COUNTY", use_code=80, acres=2.0, buildings=0, land_use="Medium-High (25) Residential")
+_real2 = json.load(open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json")))
+_bc = {"owner_patterns": [], "land_use_source": _real2["counties"]["broward"]["land_use_source"]}
+_e3 = core.enrich(_b, _bc, {}, {}); assert _e3["max_du_per_acre"] == 25.0 and _e3["zoning_category"] == "residential" and "ceiling" in _e3["density_note"]
+assert core.enrich(dict(_b, land_use="Recreation and Open Space"), _bc, {}, {})["zoning_category"] == "open space" and core.enrich(dict(_b, land_use="Activity Center"), _bc, {}, {})["zoning_category"] == "mixed-use"
+assert core.enrich(dict(_b, land_use="Commerce"), _bc, {}, {})["max_du_per_acre"] is None
 assert core.zoning_from_description("Interim District - Uses depend on character of neighborhood") == ("other", None)
 assert L("MIAMI DADE AVIATION DEPT", 10) == "county" and L("PUBLIC HOUSING & COMMUNITY DEV", 0) == "county"
 assert L("PARKS AND RECREATION", 0) == "county" and L("WATER AND SEWER DEPT", 0) == "county"

@@ -77,3 +77,22 @@ West Palm Beach,POR,commercial,14,,From a third-party copy of the city's schedul
 West Palm Beach,CM,mixed-use,32.26,,From a third-party copy of the city's schedule of district regulations; confirm against the official code.,https://www.zoneomics.com/code/west-palm-beach-FL/chapter_9
 West Palm Beach,RTD,residential,14,,From a third-party copy of the city's schedule of district regulations; confirm against the official code.,https://www.zoneomics.com/code/west-palm-beach-FL/chapter_9
 Fort Lauderdale,P,open space,,,"Parks, recreation and open space district.",https://www.zoneomics.com/code/fort-lauderdale-FL/chapter_4
+Sunrise,RS-3,single-family,3,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,RS-5,single-family,5,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,RS-7,single-family,7,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,RM-10,multifamily,10,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,RM-16,multifamily,16,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,RM-25,multifamily,25,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,B-1,commercial,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,B-2,commercial,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,B-3,commercial,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,B-3A,commercial,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,B-4,commercial,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,B-5,commercial,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,B-6,mixed-use,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,I-1,industrial,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,R/OS,open space,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,CR,other,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,CF,other,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,PDD,other,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13
+Sunrise,PUD,other,,,From the district label in the city's own zoning layer.,https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13

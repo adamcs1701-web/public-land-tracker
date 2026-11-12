@@ -144,11 +144,17 @@ def enrich(rec, county_cfg, density, surplus):
     lu = county_cfg.get("land_use_source") or {}
     if out.get("zoning") and "(city)" in out["zoning"]:
         out["zoning_jurisdiction"] = "A city, via the county's zoning layer"
-    if out.get("land_use") and lu.get("density_regex") and out["max_du_per_acre"] is None:
-        m = re.search(lu["density_regex"], out["land_use"].upper())
+    if out.get("land_use"):
+        LU = out["land_use"].upper()
+        if out.get("zoning_category") in (None, "other"):      # land use fills in only where zoning says nothing
+            for rx, cat in lu.get("category_rules", []):
+                if re.search(rx, LU):
+                    out["zoning_category"] = cat
+                    break
+        m = re.search(lu["density_regex"], LU) if lu.get("density_regex") and out["max_du_per_acre"] is None else None
         if m:
             out["max_du_per_acre"] = float(m.group(1))
-            out["density_note"] = "From the future land use designation %s, which sets residential density here." % out["land_use"]
+            out["density_note"] = lu.get("density_note", "From the land use designation %s.") % out["land_use"]
             if out.get("zoning_category") in (None, "other"):
                 out["zoning_category"] = "residential"
     d, ac = out["max_du_per_acre"], out["acres"]
@@ -243,7 +249,12 @@ def land_use_lookup(lat, lon, lcfg):
         return None
     a = {k.lower(): v for k, v in feats[0]["attributes"].items()}
     code = a.get(lcfg["code_field"].lower())
-    return (str(code).strip(), a.get((lcfg.get("desc_field") or "").lower())) if code not in (None, "") else None
+    if code in (None, ""):
+        return None
+    code = str(code).strip()
+    if lcfg.get("labels"):
+        return lcfg["labels"].get(code, "Code " + code), None
+    return code, a.get((lcfg.get("desc_field") or "").lower())
 
 
 def in_water(lat, lon, wcfg):

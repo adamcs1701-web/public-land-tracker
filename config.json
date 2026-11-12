@@ -61,7 +61,66 @@
           "name": "FL statewide cadastral (DOR schema)",
           "url": "https://services9.arcgis.com/Gh9awoU677aKree0/arcgis/rest/services/Florida_Statewide_Cadastral/FeatureServer/0"
         }
-      ]
+      ],
+      "land_use_source": {
+        "name": "Broward County Land Use Plan",
+        "url": "https://services.arcgis.com/JMAJrTsHNLrSsWf5/ArcGIS/rest/services/FutureLandUse/FeatureServer/0",
+        "code_field": "SLUC1",
+        "max_parallel": 4,
+        "labels": {
+          "34": "Palm Beach County Rural Residential-10",
+          "28": "Rural Ranches",
+          "29": "Rural Estates",
+          "30": "Estate (1) Residential",
+          "31": "Low (2) Residential",
+          "32": "Low (3) Residential",
+          "33": "Low (5) Residential",
+          "36": "Low-Medium (10) Residential",
+          "37": "Medium (16) Residential",
+          "38": "Medium-High (25) Residential",
+          "39": "High (50) Residential",
+          "222": "Irregular Residential",
+          "0": "Dashed-Line Area",
+          "100": "Activity Center",
+          "60": "Commerce",
+          "20": "Agricultural",
+          "5": "Conservation - Natural Reservations",
+          "555": "Conservation - Reserve Water Supply Areas",
+          "10": "Recreation and Open Space",
+          "15": "Commercial Recreation",
+          "40": "Community",
+          "110": "Electrical Generation Facility",
+          "00": "Tribal Lands",
+          "444": "Mining",
+          "70": "Transportation",
+          "1": "Water"
+        },
+        "density_regex": "\\((\\d+(?:\\.\\d+)?)\\) RESIDENTIAL",
+        "category_rules": [
+          [
+            "CONSERVATION|RECREATION AND OPEN SPACE|^WATER$",
+            "open space"
+          ],
+          [
+            "ACTIVITY CENTER",
+            "mixed-use"
+          ],
+          [
+            "COMMERCE",
+            "commercial"
+          ],
+          [
+            "AGRICULTURAL|RURAL",
+            "agricultural"
+          ],
+          [
+            "RESIDENTIAL",
+            "residential"
+          ]
+        ],
+        "density_note": "County land use plan ceiling for %s. The city's own zoning may allow less.",
+        "_note": "Countywide Broward County Land Use Plan designation (layer last edited 2026-08-21). Used for category and a density ceiling where city zoning is missing."
+      }
     },
     "palm-beach": {
       "label": "Palm Beach",
@@ -93,7 +152,8 @@
         "max_parallel": 3,
         "density_regex": "\\b(?:LR|MR|HR)-?(\\d+(?:\\.\\d+)?)\\b",
         "skip_if_zoning_matches": "\\(city\\)",
-        "_note": "In unincorporated Palm Beach County residential density comes from the future land use designation (LR-2, MR-5, HR-12...): the number is the maximum units per acre. Not applied to parcels whose zoning is a city's."
+        "_note": "In unincorporated Palm Beach County residential density comes from the future land use designation (LR-2, MR-5, HR-12...): the number is the maximum units per acre. Not applied to parcels whose zoning is a city's.",
+        "density_note": "From the future land use designation %s, which sets residential density here."
       }
     }
   },
@@ -184,6 +244,24 @@
         "enabled": true,
         "note": "Fields confirmed 2026-11-12 from layer metadata.",
         "max_parallel": 3
+      },
+      {
+        "jurisdiction": "Davie",
+        "url": "https://gis.davie-fl.gov/gis/rest/services/CommDev/PlanningZoning_Reference_wm/MapServer/19",
+        "code_field": "ZONECLASS",
+        "desc_field": "ZONEDESC",
+        "enabled": true,
+        "max_parallel": 3,
+        "note": "Fields from layer metadata 2026-11-12; ZONECLASS assumed to hold the code."
+      },
+      {
+        "jurisdiction": "Sunrise",
+        "url": "https://gis.sunrisefl.gov/erp/rest/services/ENERGOV/ENERGOV_MASTER_DISPLAY1/MapServer/13",
+        "code_field": "ZONECODE",
+        "desc_field": "",
+        "enabled": true,
+        "max_parallel": 3,
+        "note": "Fields from layer metadata 2026-11-12."
       },
       {
         "jurisdiction": "Miramar",
