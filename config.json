@@ -150,10 +150,28 @@
         "code_field": "FLU_CODE",
         "desc_field": "FLU_DESC",
         "max_parallel": 3,
-        "density_regex": "\\b(?:LR|MR|HR)-?(\\d+(?:\\.\\d+)?)\\b",
+        "density_regex": "\\b(?:LR|MR|HR)-?(\\d+(?:\\.\\d+)?)\\b|/(\\d+(?:\\.\\d+)?)$",
         "skip_if_zoning_matches": "\\(city\\)",
-        "_note": "In unincorporated Palm Beach County residential density comes from the future land use designation (LR-2, MR-5, HR-12...): the number is the maximum units per acre. Not applied to parcels whose zoning is a city's.",
-        "density_note": "From the future land use designation %s, which sets residential density here."
+        "_note": "In unincorporated Palm Beach County residential density comes from the future land use designation (LR-2, MR-5, HR-12...): the number is the maximum units per acre. Not applied to parcels whose zoning is a city's. Codes like CH/8 are a commercial designation with an underlying residential density of 8.",
+        "density_note": "From the future land use designation %s, which sets residential density here.",
+        "category_rules": [
+          [
+            "^PARK|^CON",
+            "open space"
+          ],
+          [
+            "^C[HL]",
+            "commercial"
+          ],
+          [
+            "^IND",
+            "industrial"
+          ],
+          [
+            "^(LR|MR|HR)",
+            "residential"
+          ]
+        ]
       }
     }
   },

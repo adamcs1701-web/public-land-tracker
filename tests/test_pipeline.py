@@ -42,6 +42,9 @@ _bc = {"owner_patterns": [], "land_use_source": _real2["counties"]["broward"]["l
 _e3 = core.enrich(_b, _bc, {}, {}); assert _e3["max_du_per_acre"] == 25.0 and _e3["zoning_category"] == "residential" and "ceiling" in _e3["density_note"]
 assert core.enrich(dict(_b, land_use="Recreation and Open Space"), _bc, {}, {})["zoning_category"] == "open space" and core.enrich(dict(_b, land_use="Activity Center"), _bc, {}, {})["zoning_category"] == "mixed-use"
 assert core.enrich(dict(_b, land_use="Commerce"), _bc, {}, {})["max_du_per_acre"] is None
+_pc = {"owner_patterns": [], "land_use_source": _real2["counties"]["palm-beach"]["land_use_source"]}
+_pe = core.enrich(dict(_lu, land_use="CH/8"), _pc, {}, {}); assert _pe["max_du_per_acre"] == 8.0 and _pe["zoning_category"] == "commercial"
+assert core.enrich(dict(_lu, land_use="MR-5"), _pc, {}, {})["max_du_per_acre"] == 5.0 and core.enrich(dict(_lu, land_use="PARK"), _pc, {}, {})["zoning_category"] == "open space"
 assert core.zoning_from_description("Interim District - Uses depend on character of neighborhood") == ("other", None)
 assert L("MIAMI DADE AVIATION DEPT", 10) == "county" and L("PUBLIC HOUSING & COMMUNITY DEV", 0) == "county"
 assert L("PARKS AND RECREATION", 0) == "county" and L("WATER AND SEWER DEPT", 0) == "county"

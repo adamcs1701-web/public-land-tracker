@@ -153,7 +153,7 @@ def enrich(rec, county_cfg, density, surplus):
                     break
         m = re.search(lu["density_regex"], LU) if lu.get("density_regex") and out["max_du_per_acre"] is None else None
         if m:
-            out["max_du_per_acre"] = float(m.group(1))
+            out["max_du_per_acre"] = float(next(g for g in m.groups() if g))
             out["density_note"] = lu.get("density_note", "From the land use designation %s.") % out["land_use"]
             if out.get("zoning_category") in (None, "other"):
                 out["zoning_category"] = "residential"
