@@ -169,10 +169,11 @@
       {
         "jurisdiction": "Fort Lauderdale",
         "url": "https://gis.fortlauderdale.gov/arcgis/rest/services/ZoningGIS/LayerList/MapServer/15",
-        "code_field": "",
-        "desc_field": "",
-        "enabled": false,
-        "note": "Layer confirmed (Zoning Districts). Code field name still to read."
+        "code_field": "ZONECLASS",
+        "desc_field": "ZONEDESC",
+        "enabled": true,
+        "note": "Fields confirmed 2026-11-12 from layer metadata.",
+        "max_parallel": 3
       },
       {
         "jurisdiction": "Miramar",
@@ -222,7 +223,8 @@
         "code_field": "ZONECLASS",
         "desc_field": "ZONEDESC",
         "enabled": true,
-        "note": "Confirmed 2026-11-11."
+        "note": "Confirmed 2026-11-11.",
+        "max_parallel": 3
       },
       {
         "jurisdiction": "Boca Raton",
@@ -242,11 +244,12 @@
       },
       {
         "jurisdiction": "Unincorporated Palm Beach County",
-        "url": "https://gis.pbcgov.org/arcgis/rest/services/PZB/ZONING/MapServer/0",
-        "code_field": "",
-        "desc_field": "",
-        "enabled": false,
-        "note": "Layer confirmed. Code field name still to read."
+        "url": "https://pbcmaps.pbcgov.org/arcgis/rest/services/OpenData/Planning_Open_Data/MapServer/9",
+        "code_field": "FCODE",
+        "desc_field": "FNAME",
+        "enabled": true,
+        "note": "Open-data copy of the county zoning layer; fields confirmed 2026-11-12. The PZB/ZONING service was down that day.",
+        "max_parallel": 3
       }
     ]
   }
