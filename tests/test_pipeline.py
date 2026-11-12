@@ -83,8 +83,9 @@ assert _x(owner="SOUTH FLA WATER MGMT DIST") and _x(owner="LAKE WORTH DRAINAGE D
 assert _x(owner="TIITF/STATE OF FLORIDA") is None and _x(owner="CITY OF WATERFORD") is None and _x(owner="SCHOOL BOARD OF BROWARD COUNTY") is None
 assert _x(legal="SUBMERGED LAND LYING E OF") and _x(legal="LOT 4 BLK 2 SUBDIVISION OF X") is None and _x(in_water=True) and _x(in_water=False) is None
 assert core.exclusion_reason({"owner": "U S A", "use_code": 88}, "federal", _real)
-for _c in cfg["counties"].values():
+for _c in cfg["counties"].values():      # the offline test must never reach live servers
     _c.pop("development_boundary", None)
+    _c.pop("land_use_source", None)
 sq = core.Boundary({"features": [{"geometry": {"type": "Polygon", "coordinates": [[[0, 0], [4, 0], [4, 4], [0, 4], [0, 0]], [[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]]]}}]})
 assert sq.contains(3, 3) is True and sq.contains(5, 1) is False and sq.contains(1.5, 1.5) is False and sq.contains(None, 1) is None
 for c in cfg["counties"].values():
