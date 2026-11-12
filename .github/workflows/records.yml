@@ -1,0 +1,41 @@
+name: Refresh commission records
+
+on:
+  schedule:
+    - cron: "17 14 * * 1"   # Mondays 14:17 UTC, after the parcel refresh
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  records:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Offline self-test
+        run: python3 tests/test_records.py
+      - name: Read commission records and match them to parcels
+        run: |
+          git config user.name "refresh-bot"
+          git config user.email "refresh-bot@users.noreply.github.com"
+          git fetch -q origin main && git reset -q --hard FETCH_HEAD
+          python3 -u tools/records.py
+          KEEP="$RUNNER_TEMP/keep"; mkdir -p "$KEEP"
+          cp data/records_cache.json docs/records.json "$KEEP/"
+          for TRY in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard FETCH_HEAD
+            cp "$KEEP/records_cache.json" data/ && cp "$KEEP/records.json" docs/
+            git add -f data/records_cache.json docs/records.json
+            git diff --cached --quiet || git commit -q -m "Commission records $(date -u +%F)"
+            git push -q origin HEAD:main && break
+            echo "save attempt $TRY failed, retrying"; sleep $((TRY * 7))
+          done

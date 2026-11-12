@@ -97,6 +97,12 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--bg)} tbody tr.sel{backg
 .star.on{color:#d99a00}
 .flagbox{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .flagbox textarea{flex:1;min-width:220px;height:54px;font:13px var(--body);padding:6px 8px}
+.recs{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.recs h3{font:600 14px var(--display);margin:0}
+.rec{display:grid;grid-template-columns:90px minmax(0,1fr);gap:4px 12px;font-size:13px}
+.rec .t{overflow-wrap:anywhere}.rec .m{color:var(--muted);font-size:12px}
+.tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:999px;background:var(--not-bg);color:var(--muted);margin-right:4px}
+.tag.hot{background:var(--review-bg);color:var(--review);font-weight:600}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;max-width:90vw}
 textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px}
 </style>
@@ -140,6 +146,7 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
         <label class="chk"><input type="checkbox" id="xLease">Land already leased to a private party</label>
         <label class="chk"><input type="checkbox" id="xFlood">High-risk flood zones (A and V)</label>
         <label class="chk"><input type="checkbox" id="surOnly">Anything not on a surplus list</label>
+        <label class="chk"><input type="checkbox" id="recRev">Send parcels named in a lease, sale or conveyance item to review</label>
       </fieldset>
       <button type="button" id="reset">Reset criteria</button>
     </form>
@@ -183,7 +190,7 @@ const ZW={"mixed-use":15,"multifamily":15,"commercial":12,"residential":8,"indus
 const OWNERS=["county","municipal","state","federal","school","district","other"];
 const OWNLAB={county:"County",municipal:"City",state:"State",federal:"Federal",school:"School board",district:"Special district",other:"Other"};
 const DEF={minAc:1,maxAc:"",minDu:20,minUnits:0,minVpa:0,zon:["mixed-use","multifamily","commercial","residential"],own:OWNERS.slice(),cty:null,
-  vacOnly:true,xPark:true,xSchool:true,xHosp:true,xLease:true,xFlood:false,surOnly:false};
+  vacOnly:true,xPark:true,xSchool:true,xHosp:true,xLease:true,xFlood:false,surOnly:false,recRev:true};
 const CITIES=[["Miami",25.7617,-80.1918],["Fort Lauderdale",26.1224,-80.1373],["West Palm Beach",26.7153,-80.0534]];
 let data=EXAMPLE, C=load("crit")||JSON.parse(JSON.stringify(DEF)), rows=[], selKey=null, sortBy="score", sortDir=-1;
 
@@ -216,6 +223,7 @@ function assess(p,c){
   if(c.xLease&&p.leased)fail.push("Already leased to a private party");
   if(c.xFlood){const f=(p.flood_zone||"").toUpperCase();if(!f)unknown.push("Flood zone is not in this data source");else if(/^(A|V)/.test(f))fail.push("Flood zone "+f)}
   if(c.surOnly&&!p.surplus_list)fail.push("Not on a surplus list");
+  if(c.recRev!==false){const hot=recsFor(p).filter(x=>x.hot);if(hot.length){const x=hot[0];unknown.push("Named in a commission item that mentions "+x.tags.filter(t=>REC.committed.has(t)).join(", ")+" ("+x.gov.replace(" Commission","")+" file "+x.file+(x.final||x.intro?", "+(x.final||x.intro):"")+"). Check whether it is still available.")}}
   if(c.zon.length<ZCATS.length){if(!z)unknown.push("Zoning is not in this data source");else if(!c.zon.includes(z))fail.push("Zoned "+(p.zoning||z)+" ("+z+")");else pass.push("Zoned "+(p.zoning||z))}
   if(+c.minDu>0){if(p.max_du_per_acre==null)unknown.push("Allowed density is not known");else if(p.max_du_per_acre<+c.minDu)fail.push("Allows "+p.max_du_per_acre+" units per acre, under your minimum of "+c.minDu);else pass.push("Allows "+p.max_du_per_acre+" units per acre")}
   if(+c.minUnits>0){if(p.est_units==null)unknown.push("Unit yield cannot be estimated");else if(p.est_units<+c.minUnits)fail.push("About "+p.est_units+" units, under your minimum of "+c.minUnits)}
@@ -225,11 +233,11 @@ function assess(p,c){
   return {tier:fail.length?"not":unknown.length?"review":"ripe",score:Math.round(s),fail,unknown,pass,z}}
 
 function readCrit(){["minAc","maxAc","minDu","minUnits","minVpa"].forEach(k=>C[k]=$(k).value);
-  ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly"].forEach(k=>C[k]=$(k).checked);
+  ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly","recRev"].forEach(k=>C[k]=$(k).checked);
   const picked=id=>[...$(id).querySelectorAll("input:checked")].map(i=>i.value);
   C.zon=picked("zon");C.own=picked("own");C.cty=picked("cty");save("crit",C)}
 function writeCrit(){["minAc","maxAc","minDu","minUnits","minVpa"].forEach(k=>$(k).value=C[k]==null?0:C[k]);
-  ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly"].forEach(k=>$(k).checked=!!C[k]);
+  ["vacOnly","xPark","xSchool","xHosp","xLease","xFlood","surOnly","recRev"].forEach(k=>$(k).checked=!!C[k]);
   const chips=(id,vals,lab,on)=>{$(id).replaceChildren(...vals.map(v=>{const i=el("input",{type:"checkbox",value:v,id:id+"_"+v});i.checked=!on||on.includes(v);return el("label",null,[i,lab(v)])}))};
   chips("zon",ZCATS,v=>v[0].toUpperCase()+v.slice(1),C.zon); const present=new Set(data.parcels.map(p=>p.owner_level)); chips("own",OWNERS.filter(v=>present.has(v)),v=>OWNLAB[v],C.own);
   const cs=[...new Set(data.parcels.map(p=>p.county))]; const labs={}; (data.sources||[]).forEach(s=>labs[s.county]=s.label);
@@ -245,7 +253,7 @@ function render(){
   rows=data.parcels.map(p=>({p,a:assess(p,C)}));
   const n={ripe:0,review:0,not:0};rows.forEach(r=>n[r.a.tier]++);
   $("tally").replaceChildren(el("div",{class:"t-ripe"},[el("b",{text:fmt(n.ripe)}),el("span",{text:"Ripe"})]),el("div",{class:"t-review"},[el("b",{text:fmt(n.review)}),el("span",{text:"Needs review"})]),el("div",{class:"t-not"},[el("b",{text:fmt(n.not)}),el("span",{text:"Not ripe"})]));
-  const order={ripe:0,review:1,not:2}; const get={flag:r=>FLAGS[key(r.p)]?1:0,score:r=>r.a.score,acres:r=>r.p.acres||0,du:r=>r.p.max_du_per_acre||0,units:r=>r.p.est_units||0,jv:r=>r.p.just_value||0,owner:r=>r.p.owner,county:r=>r.p.county,id:r=>r.p.id,zoning:r=>r.p.zoning||"",use:r=>r.p.use_label};
+  const order={ripe:0,review:1,not:2}; const get={flag:r=>FLAGS[key(r.p)]?1:0,score:r=>r.a.score,acres:r=>r.p.acres||0,du:r=>r.p.max_du_per_acre||0,units:r=>r.p.est_units||0,jv:r=>r.p.just_value||0,recs:r=>recsFor(r.p).length,owner:r=>r.p.owner,county:r=>r.p.county,id:r=>r.p.id,zoning:r=>r.p.zoning||"",use:r=>r.p.use_label};
   rows.sort((x,y)=>order[x.a.tier]-order[y.a.tier]||((get[sortBy](x)>get[sortBy](y)?1:get[sortBy](x)<get[sortBy](y)?-1:0)*sortDir));
   if(!rows.some(r=>key(r.p)===selKey))selKey=rows.length?key(rows[0].p):null;
   renderMap();renderTable();renderDetail()}
@@ -292,7 +300,7 @@ async function showOutline(p){ // the parcel's real shape, fetched live from the
     const g=await (await fetch(u+"/query?"+q)).json();if(selKey!==k)return;const fs=g.features||[],norm=s=>String(s||"").replace(/\W/g,"");
     const f=fs.find(f=>norm(f.properties&&f.properties.PARCEL_ID)===norm(p.id))||fs[0];if(f)outline=L.geoJSON(f,{style:{color:"#ffd400",weight:3,fillColor:"#ffd400",fillOpacity:.12},interactive:false}).addTo(map)}catch(e){}}
 function focusSel(){const r=rows.find(r=>key(r.p)===selKey);if(!r||r.p.lat==null||!map)return;const ac=r.p.acres||1;map.setView([r.p.lat,r.p.lon],Math.max(map.getZoom(),ac>200?14:ac>20?16:17));showOutline(r.p);$("mapbox").scrollIntoView({behavior:"smooth",block:"nearest"})}
-const COLS=[["flag","★",null],["","Fit",null],["score","Score","num"],["county","County"],["id","Parcel"],["owner","Owner"],["use","Recorded use"],["acres","Acres","num"],["zoning","Zoning"],["du","Units/ac","num"],["units","Est. units","num"],["jv","Value","num"]];
+const COLS=[["flag","★",null],["","Fit",null],["score","Score","num"],["county","County"],["id","Parcel"],["owner","Owner"],["use","Recorded use"],["acres","Acres","num"],["zoning","Zoning"],["du","Units/ac","num"],["units","Est. units","num"],["jv","Value","num"],["recs","Records","num"]];
 let FLAGS=load("flags")||{};   // { "county|parcel": {note, at} }, kept in this browser
 function saveFlags(){save("flags",FLAGS);const n=Object.keys(FLAGS).length;$("show").querySelector('[value=flag]').textContent="Flagged only ("+n+")"}
 function toggleFlag(k){if(FLAGS[k])delete FLAGS[k];else FLAGS[k]={note:"",at:new Date().toISOString().slice(0,10)};saveFlags()}
@@ -304,12 +312,27 @@ function renderTable(){
   const list=shown(),cap=250,TL={ripe:"Ripe",review:"Review",not:"Not ripe"},u=()=>el("span",{class:"unk",text:"unknown"});
   $("tbody").replaceChildren(...list.slice(0,cap).map(({p,a})=>{const tr=el("tr",{class:key(p)===selKey?"sel":""},[
     el("td",null,[starBtn(key(p))]),el("td",null,[el("span",{class:"pill "+a.tier,text:TL[a.tier]})]),el("td",{class:"num",text:a.score}),el("td",{text:labelOf(p.county)}),el("td",{class:"mono",text:p.id}),el("td",{class:"own",text:p.owner}),el("td",{text:p.use_label||""}),
-    el("td",{class:"num",text:fmt(p.acres,2)}),el("td",null,[p.zoning?p.zoning:u()]),el("td",{class:"num"},[p.max_du_per_acre!=null?fmt(p.max_du_per_acre):u()]),el("td",{class:"num"},[p.est_units!=null?fmt(p.est_units):u()]),el("td",{class:"num",text:money(p.just_value)})]);
+    el("td",{class:"num",text:fmt(p.acres,2)}),el("td",null,[p.zoning?p.zoning:u()]),el("td",{class:"num"},[p.max_du_per_acre!=null?fmt(p.max_du_per_acre):u()]),el("td",{class:"num"},[p.est_units!=null?fmt(p.est_units):u()]),el("td",{class:"num",text:money(p.just_value)}),el("td",{class:"num"},[recCell(p)])]);
     tr.addEventListener("click",()=>{selKey=key(p);renderTable();renderDetail();focusSel();drawDots()});return tr}));
   $("tblTitle").textContent=fmt(list.length)+" parcels";
   $("more").textContent=list.length>cap?"Showing the top "+cap+". Export the list to get all "+fmt(list.length)+".":list.length?"":"No parcels match. Loosen a criterion on the left."}
 function labelOf(c){const s=(data.sources||[]).find(s=>s.county===c);return s?s.label:c}
 
+// ---- Commission records (built weekly by tools/records.py) ----
+let REC={items:{},by:{},cov:{},committed:new Set(),loaded:false};
+const REC_SRC={"miami-dade":{name:"Miami-Dade County Commission",search:"https://www.miamidade.gov/govaction/searchleg.asp",or:"https://onlineservices.miamidadeclerk.gov/officialrecords",orName:"Miami-Dade Clerk official records"},
+  "broward":{name:"Broward County Commission",search:"https://www.broward.org/meetings/SearchAgendas",or:"https://www.broward.org/recordstaxestreasury/OfficialRecordsPublicSearch",orName:"Broward official records"},
+  "palm-beach":{name:"Palm Beach County Commission",search:"https://discover.pbc.gov/countycommissioners/Pages/Agendas.aspx",or:"https://mypalmbeachclerk.com/records",orName:"Palm Beach Clerk official records"}};
+function recsFor(p){const refs=REC.by[key(p)]||[];return refs.map(([rid,how])=>{const it=REC.items[rid]||{};const tags=it.tags||[];return Object.assign({how,hot:tags.some(t=>REC.committed.has(t))},it,{tags})}).sort((a,b)=>String(b.final||b.intro||"").localeCompare(String(a.final||a.intro||"")))}
+function recCell(p){const r=recsFor(p);if(!r.length)return el("span",{class:"unk",text:REC.loaded&&REC.cov[p.county]?"0":""});return el("span",{class:r.some(x=>x.hot)?"pill review":"",text:String(r.length),title:r.some(x=>x.hot)?"Named in a lease, sale or conveyance item":"Named in a commission item"})}
+function recSection(p){const src=REC_SRC[p.county]||{},cov=REC.cov[p.county],list=recsFor(p),box=el("div",{class:"recs"},[el("h3",{text:"Commission records"})]);
+  if(!REC.loaded)box.appendChild(el("p",{class:"unk",text:"Commission records have not been loaded yet."}));
+  else if(!cov||!cov.ok&&!cov.items)box.appendChild(el("p",{class:"unk",text:(src.name||"This county's commission")+" records are not searched yet. Use the links below."}));
+  else if(!list.length)box.appendChild(el("p",{class:"unk",text:"No "+src.name+" item"+(cov.from?" since "+cov.from.slice(0,4):"")+" names this parcel's folio number or street address. That is a screen, not a title search: older items, items that describe land only by legal description, and city commission items are not covered."}));
+  for(const x of list){const tags=el("span",null,x.tags.map(t=>el("span",{class:"tag"+(REC.committed.has(t)?" hot":""),text:t})));
+    box.appendChild(el("div",{class:"rec"},[el("span",{class:"m",text:x.final||x.intro||""}),el("span",{class:"t"},[el("a",{href:x.url,target:"_blank",rel:"noopener",text:"File "+x.file+(x.reference?" ("+x.reference+")":"")}),document.createTextNode(" · "+[x.type,x.status].filter(Boolean).join(", "))]),
+      el("span",{class:"m",text:x.how==="folio"?"folio match":"address match"}),el("span",{class:"t"},[tags,document.createTextNode(" "+(x.title||x.name||""))])]))}
+  const links=el("div",{class:"links"});if(src.search)links.appendChild(el("a",{href:src.search,target:"_blank",rel:"noopener",text:"Search "+src.name+" records"}));if(src.or)links.appendChild(el("a",{href:src.or,target:"_blank",rel:"noopener",text:src.orName}));box.appendChild(links);return box}
 function renderDetail(){const r=rows.find(r=>key(r.p)===selKey),d=$("detail");if(!r){d.replaceChildren(el("h2",{text:"Select a parcel"}));return}
   const {p,a}=r,TL={ripe:"Ripe",review:"Needs review",not:"Not ripe"},dd=(t,v)=>el("div",null,[el("dt",{text:t}),el("dd",{text:v||"unknown"})]);
   const links=[];if(p.appraiser_url&&/^https:\/\//.test(p.appraiser_url))links.push(el("a",{href:p.appraiser_url,target:"_blank",rel:"noopener",text:"Property appraiser record"}));
@@ -321,6 +344,7 @@ function renderDetail(){const r=rows.find(r=>key(r.p)===selKey),d=$("detail");if
       dd("Zoning",p.zoning?p.zoning+(a.z?" ("+a.z+")":""):""),dd("Future land use",p.land_use||"not looked up"),dd("Zoning source",p.zoning?[p.zoning_jurisdiction,p.zoning_description].filter(Boolean).join(": "):""),dd("Allowed density",p.max_du_per_acre!=null?(p.max_du_per_acre_high?p.max_du_per_acre+" to "+p.max_du_per_acre_high:p.max_du_per_acre)+" units/acre":""),dd("Density note",p.density_note||"none"),dd("Estimated yield",p.est_units!=null?fmt(p.est_units)+" units":""),dd("Just value",money(p.just_value)),dd("Flood zone",p.flood_zone),dd("First tracked",p.first_seen)]),
     el("ul",{class:"reasons"},[...a.fail.map(t=>el("li",{class:"fail",text:"Rules it out: "+t})),...a.unknown.map(t=>el("li",{class:"fail",text:"Check: "+t})),...a.pass.map(t=>el("li",{text:"Fits: "+t}))]),
     el("div",{class:"links"},links),
+    recSection(p),
     el("div",{class:"flagbox"},[note,el("span",{class:"unk",text:FLAGS[fk]?"Flagged "+FLAGS[fk].at:"Not flagged. Star it, or type a note to flag it."})]))}
 
 function renderChanges(){const ch=(data.changes||[]).slice(0,60),TL={added:"review",removed:"not",changed:"ripe"},NM={added:"Added",removed:"Removed",changed:"Changed"};
@@ -343,7 +367,8 @@ $("flagFile").addEventListener("change",e=>{const f=e.target.files[0];if(!f)retu
 saveFlags();
 $("reset").addEventListener("click",()=>{C=JSON.parse(JSON.stringify(DEF));writeCrit();readCrit();render()});
 Promise.all([fetch("data.json").then(r=>{if(!r.ok)throw 0;return r.json()}),fetch("boundaries.json").then(r=>r.ok?r.json():{dev:[],places:[]}).catch(()=>({dev:[],places:[]}))])
-  .then(([d,g])=>{GEO=g;EXAMPLE=unpack(d);$("loadNote").hidden=true;setData(EXAMPLE,false)})
+  .then(([d,g])=>{GEO=g;EXAMPLE=unpack(d);$("loadNote").hidden=true;setData(EXAMPLE,false);
+    fetch("records.json").then(r=>r.ok?r.json():null).then(x=>{if(!x)return;REC={items:x.items||{},by:x.by_parcel||{},cov:x.coverage||{},committed:new Set(x.committed_tags||[]),loaded:true};render()}).catch(()=>{})})
   .catch(()=>{$("loadNote").textContent="The parcel data could not be loaded. Reload the page, or check the refresh history for a failed run."});
 })();
 </script>
