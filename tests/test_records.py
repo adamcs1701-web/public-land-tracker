@@ -22,4 +22,13 @@ parcels = [{"county": "miami-dade", "id": "3040040240010", "address": ""}, {"cou
 items, bp = R.match(parcels, cache)
 assert bp["miami-dade|3040040240010"] == [["miami-dade:261810", "folio"]] and bp["miami-dade|999"] == [["miami-dade:261810", "address"]]
 assert bp["broward|5"] == [["broward:1", "address"]] and "broward|6" not in bp, bp
+assert R.hot_tags({"title": "RESOLUTION AUTHORIZING THE COUNTY MAYOR TO CONVEY NON-EXCLUSIVE UTILITY EASEMENTS OVER COUNTY-OWNED LAND"}) == []
+assert R.hot_tags({"title": "RESOLUTION APPROVING A 99-YEAR GROUND LEASE WITH FLAGLER TOC DEVELOPMENT PARTNERS"}) == ["ground lease", "lease"]
+assert R.hot_tags({"title": "RESOLUTION AUTHORIZING CONVEYANCE OF INFILL HOUSING LOTS BY COUNTY DEED"}) == ["conveyance", "deed"]
+many = {str(i): {"gov": "x", "folios": [], "addrs": ["111|NW 1 ST"], "tags": []} for i in range(20)}
+_, bp2 = R.match([{"county": "miami-dade", "id": "1", "address": "111 NW 1 ST"}], {"miami-dade": many})
+assert bp2 == {}, "a boilerplate address must not match"
+assert R.hot_tags({"title": "RESOLUTION AUTHORIZING ACCEPTANCE OF WARRANTY DEED FROM SUMMERVILLE DEVELOPERS"}) == []
+assert R.hot_tags({"title": "RESOLUTION APPROVING PURCHASE BY MIAMI-DADE COUNTY OF 57.24 ACRES KNOWN AS LUDLAM TRAIL; AUTHORIZING ACCEPTANCE OF DEED"}) == []
+assert R.hot_tags({"title": "RESOLUTION DECLARING SURPLUS AND AUTHORIZING SALE OF COUNTY-OWNED PROPERTY BY COUNTY DEED"}) == ["deed", "sale"]
 print("RECORDS TESTS PASSED")

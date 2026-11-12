@@ -244,6 +244,23 @@ def broward(cache):
 
 
 # ---------------------------------------------------------------- matching
+def hot_tags(it):
+    """Commitment judged from the item's title, not incidental words in its body. A conveyance of an
+    easement (utility easements and the like) does not take the land itself off the table."""
+    t = tags_of((it.get("title") or "") + " " + (it.get("name") or ""))
+    hot = [x for x in t if x in COMMITTED]
+    if "easement" in t and not set(hot) & {"ground lease", "lease", "deed", "sale", "development agreement", "option to purchase"}:
+        hot = [x for x in hot if x not in ("conveyance", "license")]
+    T = ((it.get("title") or "") + " " + (it.get("name") or "")).upper()
+    acquiring = re.search(r"\bACCEPT(ANCE|ING)?\b|\bACQUI(RE|SITION|RING)\b|\bPURCHASE BY (THE |MIAMI-DADE |BROWARD )?COUNTY|\bDONATION\b", T)
+    if acquiring and not set(hot) & {"ground lease", "lease"} and "PURCHASE AND SALE" not in T:
+        hot = [x for x in hot if x not in ("conveyance", "deed", "sale")]      # land coming in, not going out
+    return hot
+
+
+MAX_ADDR_ITEMS = 12     # an address cited in more items than this is boilerplate (a government center), not a parcel
+
+
 def match(parcels, cache):
     items, by_parcel = {}, {}
     for county, store in cache.items():
@@ -258,17 +275,25 @@ def match(parcels, cache):
             ak = roll_addr_key(p.get("address"))
             if ak:
                 adr.setdefault(ak, []).append(k)
+        df = {}
+        for it in store.values():
+            for a in set(it.get("addrs", [])):
+                df[a] = df.get(a, 0) + 1
         for ref, it in store.items():
             hits = {}
             for f in it.get("folios", []):
                 for k in fol.get(f, []):
                     hits[k] = "folio"
             for a in it.get("addrs", []):
+                if df.get(a, 0) > MAX_ADDR_ITEMS:
+                    continue
                 for k in adr.get(a, [])[:6]:             # an address shared by many parcels is too vague to report
                     hits.setdefault(k, "address")
             if hits:
                 rid = county + ":" + ref
                 items[rid] = {k: it.get(k) for k in ("gov", "file", "type", "status", "reference", "title", "name", "intro", "final", "url", "pdf", "tags")}
+                items[rid]["hot"] = hot_tags(it)
+                items[rid]["n"] = len(hits)
                 for k, how in hits.items():
                     by_parcel.setdefault(k, []).append([rid, how])
     return items, by_parcel
@@ -278,25 +303,26 @@ def main():
     cache = json.load(open(CACHE)) if os.path.exists(CACHE) else {}
     parcels = json.load(open(os.path.join(ROOT, "data", "parcels.json")))["parcels"]
     cov = cache.setdefault("_coverage", {})
-    for county, fn in (("miami-dade", lambda c: miami_dade(c, 2005)), ("broward", broward)):
-        store = cache.setdefault(county, {})
-        t0 = time.time()
-        try:
-            fn(store)
-            dates = sorted(i["intro"] for i in store.values() if i.get("intro"))
-            cov[county] = {"items": len(store), "from": dates[0] if dates else None, "to": dates[-1] if dates else None,
-                           "checked": TODAY.isoformat(), "ok": True}
-        except Exception as e:
-            print("  %s FAILED: %s" % (county, e), flush=True)
-            cov.setdefault(county, {})["ok"] = False
-        print("%s: %d items on file, %.0f min" % (county, len(store), (time.time() - t0) / 60), flush=True)
-        json.dump(cache, open(CACHE, "w"), separators=(",", ":"))      # save progress after each county
+    if "--match-only" not in sys.argv:
+        for county, fn in (("miami-dade", lambda c: miami_dade(c, 2005)), ("broward", broward)):
+            store = cache.setdefault(county, {})
+            t0 = time.time()
+            try:
+                fn(store)
+                dates = sorted(i["intro"] for i in store.values() if i.get("intro"))
+                cov[county] = {"items": len(store), "from": dates[0] if dates else None, "to": dates[-1] if dates else None,
+                               "checked": TODAY.isoformat(), "ok": True}
+            except Exception as e:
+                print("  %s FAILED: %s" % (county, e), flush=True)
+                cov.setdefault(county, {})["ok"] = False
+            print("%s: %d items on file, %.0f min" % (county, len(store), (time.time() - t0) / 60), flush=True)
+            json.dump(cache, open(CACHE, "w"), separators=(",", ":"))      # save progress after each county
     items, by_parcel = match(parcels, cache)
     doc = {"generated_at": TODAY.isoformat(), "coverage": cov, "items": items, "by_parcel": by_parcel,
            "committed_tags": sorted(COMMITTED)}
     json.dump(doc, open(OUT, "w"), separators=(",", ":"))
-    n_com = sum(1 for k, refs in by_parcel.items() if any(set(items[r]["tags"] or []) & COMMITTED for r, _ in refs))
-    print("matched: %d parcels named in %d items; %d of those parcels in a lease, sale or conveyance item" % (len(by_parcel), len(items), n_com), flush=True)
+    n_com = sum(1 for k, refs in by_parcel.items() if any(items[r]["hot"] for r, _ in refs))
+    print("matched: %d parcels named in %d items; %d of those parcels in an item whose title is a lease, sale or conveyance" % (len(by_parcel), len(items), n_com), flush=True)
 
 
 if __name__ == "__main__":
