@@ -93,6 +93,10 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--bg)} tbody tr.sel{backg
 .changes{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .changes li{display:grid;grid-template-columns:90px 80px minmax(0,1fr);gap:10px;font-size:13px}
 @media (max-width:700px){.changes li{grid-template-columns:minmax(0,1fr)}}
+.star{background:none;border:0;padding:0 2px;font-size:17px;line-height:1;cursor:pointer;color:var(--muted)}
+.star.on{color:#d99a00}
+.flagbox{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.flagbox textarea{flex:1;min-width:220px;height:54px;font:13px var(--body);padding:6px 8px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;max-width:90vw}
 textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px}
 </style>
@@ -154,7 +158,7 @@ textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);colo
       <div class="panel detail" id="detail"></div>
       <div class="panel">
         <div class="tblhead"><h2 id="tblTitle">Parcels</h2>
-          <div class="actions"><select id="show" aria-label="Which parcels to list" style="width:auto"><option value="fit">Ripe and needs review</option><option value="ripe">Ripe only</option><option value="all">All government parcels</option></select><button id="csv">Export list</button></div></div>
+          <div class="actions"><select id="show" aria-label="Which parcels to list" style="width:auto"><option value="fit">Ripe and needs review</option><option value="ripe">Ripe only</option><option value="all">All government parcels</option><option value="flag">Flagged only</option></select><button id="csv">Export list</button><button id="flagSave" title="Save your flags and notes to a file">Back up flags</button><input type="file" id="flagFile" accept=".json,application/json" hidden><button id="flagLoad" title="Load flags from a backup file">Restore flags</button></div></div>
         <div class="scroll"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
         <p class="unk" id="more"></p>
         <div id="copyBox" hidden><p class="unk">Saving a file is not available in this view. Copy the list below instead.</p><textarea id="copyTa" readonly></textarea></div>
@@ -241,7 +245,7 @@ function render(){
   rows=data.parcels.map(p=>({p,a:assess(p,C)}));
   const n={ripe:0,review:0,not:0};rows.forEach(r=>n[r.a.tier]++);
   $("tally").replaceChildren(el("div",{class:"t-ripe"},[el("b",{text:fmt(n.ripe)}),el("span",{text:"Ripe"})]),el("div",{class:"t-review"},[el("b",{text:fmt(n.review)}),el("span",{text:"Needs review"})]),el("div",{class:"t-not"},[el("b",{text:fmt(n.not)}),el("span",{text:"Not ripe"})]));
-  const order={ripe:0,review:1,not:2}; const get={score:r=>r.a.score,acres:r=>r.p.acres||0,du:r=>r.p.max_du_per_acre||0,units:r=>r.p.est_units||0,jv:r=>r.p.just_value||0,owner:r=>r.p.owner,county:r=>r.p.county,id:r=>r.p.id,zoning:r=>r.p.zoning||"",use:r=>r.p.use_label};
+  const order={ripe:0,review:1,not:2}; const get={flag:r=>FLAGS[key(r.p)]?1:0,score:r=>r.a.score,acres:r=>r.p.acres||0,du:r=>r.p.max_du_per_acre||0,units:r=>r.p.est_units||0,jv:r=>r.p.just_value||0,owner:r=>r.p.owner,county:r=>r.p.county,id:r=>r.p.id,zoning:r=>r.p.zoning||"",use:r=>r.p.use_label};
   rows.sort((x,y)=>order[x.a.tier]-order[y.a.tier]||((get[sortBy](x)>get[sortBy](y)?1:get[sortBy](x)<get[sortBy](y)?-1:0)*sortDir));
   if(!rows.some(r=>key(r.p)===selKey))selKey=rows.length?key(rows[0].p):null;
   renderMap();renderTable();renderDetail()}
@@ -274,12 +278,12 @@ function drawDots(){if(!map)return;const b=map.getBounds().pad(.08),z=map.getZoo
   let inv=ptsAll.filter(r=>b.contains([r.p.lat,r.p.lon]));const total=inv.length;if(inv.length>3500)inv=inv.slice(-3500);
   dots.clearLayers();
   for(const r of inv){const sel=key(r.p)===selKey,base=Math.max(3,Math.min(8,2.5+Math.log10((r.p.acres||0)+1)*2.3))*(z>=15?1.5:z>=13?1:z>=11?.7:.5);
-    const m=L.circleMarker([r.p.lat,r.p.lon],{radius:sel?base+3:base,color:sel?"#ffd400":"#fff",weight:sel?3:1,fillColor:col[r.a.tier],fillOpacity:r.a.tier==="not"?.55:.9});m._row=r;dots.addLayer(m)}
+    const fl=!!FLAGS[key(r.p)];const m=L.circleMarker([r.p.lat,r.p.lon],{radius:sel?base+3:fl?base+2:base,color:sel?"#ffd400":fl?"#d99a00":"#fff",weight:sel?3:fl?3:1,fillColor:col[r.a.tier],fillOpacity:r.a.tier==="not"?.55:.9});m._row=r;dots.addLayer(m)}
   $("mapn").textContent=inv.length<total?"Top "+fmt(inv.length)+" of "+fmt(total)+" in view":fmt(total)+" in view"}
 function renderMap(){
   if(!map)initMap();
   const rank={not:0,review:1,ripe:2};
-  ptsAll=rows.filter(r=>r.p.lat!=null&&r.p.lon!=null);ptsAll.sort((a,b)=>rank[a.a.tier]-rank[b.a.tier]||a.a.score-b.a.score);
+  ptsAll=rows.filter(r=>r.p.lat!=null&&r.p.lon!=null);ptsAll.sort((a,b)=>(FLAGS[key(a.p)]?1:0)-(FLAGS[key(b.p)]?1:0)||rank[a.a.tier]-rank[b.a.tier]||a.a.score-b.a.score);
   if(!fitted&&ptsAll.length){let a=90,b=180,c=-90,d=-180;for(const r of ptsAll){if(r.p.lat<a)a=r.p.lat;if(r.p.lat>c)c=r.p.lat;if(r.p.lon<b)b=r.p.lon;if(r.p.lon>d)d=r.p.lon}map.fitBounds([[a,b],[c,d]],{padding:[20,20]});fitted=true}
   drawDots()}
 async function showOutline(p){ // the parcel's real shape, fetched live from the state parcel layer
@@ -288,13 +292,18 @@ async function showOutline(p){ // the parcel's real shape, fetched live from the
     const g=await (await fetch(u+"/query?"+q)).json();if(selKey!==k)return;const fs=g.features||[],norm=s=>String(s||"").replace(/\W/g,"");
     const f=fs.find(f=>norm(f.properties&&f.properties.PARCEL_ID)===norm(p.id))||fs[0];if(f)outline=L.geoJSON(f,{style:{color:"#ffd400",weight:3,fillColor:"#ffd400",fillOpacity:.12},interactive:false}).addTo(map)}catch(e){}}
 function focusSel(){const r=rows.find(r=>key(r.p)===selKey);if(!r||r.p.lat==null||!map)return;const ac=r.p.acres||1;map.setView([r.p.lat,r.p.lon],Math.max(map.getZoom(),ac>200?14:ac>20?16:17));showOutline(r.p);$("mapbox").scrollIntoView({behavior:"smooth",block:"nearest"})}
-const COLS=[["","Fit",null],["score","Score","num"],["county","County"],["id","Parcel"],["owner","Owner"],["use","Recorded use"],["acres","Acres","num"],["zoning","Zoning"],["du","Units/ac","num"],["units","Est. units","num"],["jv","Value","num"]];
-function shown(){const m=$("show").value;return rows.filter(r=>m==="all"||(m==="ripe"?r.a.tier==="ripe":r.a.tier!=="not"))}
+const COLS=[["flag","★",null],["","Fit",null],["score","Score","num"],["county","County"],["id","Parcel"],["owner","Owner"],["use","Recorded use"],["acres","Acres","num"],["zoning","Zoning"],["du","Units/ac","num"],["units","Est. units","num"],["jv","Value","num"]];
+let FLAGS=load("flags")||{};   // { "county|parcel": {note, at} }, kept in this browser
+function saveFlags(){save("flags",FLAGS);const n=Object.keys(FLAGS).length;$("show").querySelector('[value=flag]').textContent="Flagged only ("+n+")"}
+function toggleFlag(k){if(FLAGS[k])delete FLAGS[k];else FLAGS[k]={note:"",at:new Date().toISOString().slice(0,10)};saveFlags()}
+function starBtn(k){const b=el("button",{class:"star"+(FLAGS[k]?" on":""),type:"button","aria-label":FLAGS[k]?"Remove flag":"Flag this parcel",title:FLAGS[k]?"Remove flag":"Flag this parcel",text:FLAGS[k]?"★":"☆"});
+  b.addEventListener("click",e=>{e.stopPropagation();toggleFlag(k);renderTable();renderDetail();drawDots()});return b}
+function shown(){const m=$("show").value;return rows.filter(r=>m==="flag"?!!FLAGS[key(r.p)]:m==="all"||(m==="ripe"?r.a.tier==="ripe":r.a.tier!=="not"))}
 function renderTable(){
   $("thead").replaceChildren(...COLS.map(([k,l,c])=>{const th=el("th",{class:c||"",text:l+(k&&k===sortBy?(sortDir<0?" ↓":" ↑"):"")});if(k)th.addEventListener("click",()=>{sortDir=sortBy===k?-sortDir:-1;sortBy=k;render()});return th}));
   const list=shown(),cap=250,TL={ripe:"Ripe",review:"Review",not:"Not ripe"},u=()=>el("span",{class:"unk",text:"unknown"});
   $("tbody").replaceChildren(...list.slice(0,cap).map(({p,a})=>{const tr=el("tr",{class:key(p)===selKey?"sel":""},[
-    el("td",null,[el("span",{class:"pill "+a.tier,text:TL[a.tier]})]),el("td",{class:"num",text:a.score}),el("td",{text:labelOf(p.county)}),el("td",{class:"mono",text:p.id}),el("td",{class:"own",text:p.owner}),el("td",{text:p.use_label||""}),
+    el("td",null,[starBtn(key(p))]),el("td",null,[el("span",{class:"pill "+a.tier,text:TL[a.tier]})]),el("td",{class:"num",text:a.score}),el("td",{text:labelOf(p.county)}),el("td",{class:"mono",text:p.id}),el("td",{class:"own",text:p.owner}),el("td",{text:p.use_label||""}),
     el("td",{class:"num",text:fmt(p.acres,2)}),el("td",null,[p.zoning?p.zoning:u()]),el("td",{class:"num"},[p.max_du_per_acre!=null?fmt(p.max_du_per_acre):u()]),el("td",{class:"num"},[p.est_units!=null?fmt(p.est_units):u()]),el("td",{class:"num",text:money(p.just_value)})]);
     tr.addEventListener("click",()=>{selKey=key(p);renderTable();renderDetail();focusSel();drawDots()});return tr}));
   $("tblTitle").textContent=fmt(list.length)+" parcels";
@@ -305,18 +314,21 @@ function renderDetail(){const r=rows.find(r=>key(r.p)===selKey),d=$("detail");if
   const {p,a}=r,TL={ripe:"Ripe",review:"Needs review",not:"Not ripe"},dd=(t,v)=>el("div",null,[el("dt",{text:t}),el("dd",{text:v||"unknown"})]);
   const links=[];if(p.appraiser_url&&/^https:\/\//.test(p.appraiser_url))links.push(el("a",{href:p.appraiser_url,target:"_blank",rel:"noopener",text:"Property appraiser record"}));
   if(p.lat!=null){links.push(el("a",{href:"https://www.google.com/maps/search/?api=1&query="+p.lat+","+p.lon,target:"_blank",rel:"noopener",text:"Open in Google Maps"}));links.push(el("a",{href:"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint="+p.lat+","+p.lon,target:"_blank",rel:"noopener",text:"Street View"}))}
-  d.replaceChildren(el("h2",null,[el("span",{class:"mono",text:p.id}),el("span",{class:"pill "+a.tier,text:TL[a.tier]}),el("span",{class:"lab",text:"Score "+a.score+" of 100"})]),
+  const fk=key(p),note=el("textarea",{id:"flagNote",placeholder:"Your note on this parcel (saved with the flag)","aria-label":"Note"});note.value=(FLAGS[fk]||{}).note||"";
+  note.addEventListener("change",()=>{if(!FLAGS[fk])FLAGS[fk]={note:"",at:new Date().toISOString().slice(0,10)};FLAGS[fk].note=note.value;saveFlags();renderTable();drawDots()});
+  d.replaceChildren(el("h2",null,[starBtn(fk),el("span",{class:"mono",text:p.id}),el("span",{class:"pill "+a.tier,text:TL[a.tier]}),el("span",{class:"lab",text:"Score "+a.score+" of 100"})]),
     el("dl",null,[dd("Owner",p.owner),dd("Owner type",(OWNLAB[p.owner_level]||"")+" · from "+p.gov_basis),dd("Department",p.department||"not stated"),dd("Location",[p.address,p.city].filter(Boolean).join(", ")),dd("County",labelOf(p.county)),dd("Recorded use",p.use_label),dd("Size",p.acres!=null?fmt(p.acres,2)+" acres":""),
       dd("Zoning",p.zoning?p.zoning+(a.z?" ("+a.z+")":""):""),dd("Future land use",p.land_use||"not looked up"),dd("Zoning source",p.zoning?[p.zoning_jurisdiction,p.zoning_description].filter(Boolean).join(": "):""),dd("Allowed density",p.max_du_per_acre!=null?(p.max_du_per_acre_high?p.max_du_per_acre+" to "+p.max_du_per_acre_high:p.max_du_per_acre)+" units/acre":""),dd("Density note",p.density_note||"none"),dd("Estimated yield",p.est_units!=null?fmt(p.est_units)+" units":""),dd("Just value",money(p.just_value)),dd("Flood zone",p.flood_zone),dd("First tracked",p.first_seen)]),
     el("ul",{class:"reasons"},[...a.fail.map(t=>el("li",{class:"fail",text:"Rules it out: "+t})),...a.unknown.map(t=>el("li",{class:"fail",text:"Check: "+t})),...a.pass.map(t=>el("li",{text:"Fits: "+t}))]),
-    el("div",{class:"links"},links))}
+    el("div",{class:"links"},links),
+    el("div",{class:"flagbox"},[note,el("span",{class:"unk",text:FLAGS[fk]?"Flagged "+FLAGS[fk].at:"Not flagged. Star it, or type a note to flag it."})]))}
 
 function renderChanges(){const ch=(data.changes||[]).slice(0,60),TL={added:"review",removed:"not",changed:"ripe"},NM={added:"Added",removed:"Removed",changed:"Changed"};
   $("changes").replaceChildren(...(ch.length?ch.map(c=>el("li",null,[el("span",{class:"unk",text:c.date}),el("span",null,[el("span",{class:"pill "+(TL[c.type]||"not"),text:NM[c.type]||c.type})]),el("span",null,[el("span",{class:"mono",text:c.id+" "}),labelOf(c.county)+". "+c.detail])])):[el("li",null,[el("span",{class:"unk",text:"Nothing yet. Changes appear after the second refresh."})])]))}
 
-function csvText(){const H=["fit","score","county","parcel_id","owner","owner_type","use","acres","vacant","zoning","zoning_category","max_du_per_acre","est_units","just_value","flood_zone","surplus_list","lat","lon","reasons","appraiser_url"];
+function csvText(){const H=["flagged","note","fit","score","county","parcel_id","owner","owner_type","use","acres","vacant","zoning","zoning_category","max_du_per_acre","est_units","just_value","flood_zone","surplus_list","lat","lon","reasons","appraiser_url"];
   const q=v=>{v=v==null?"":String(v);if(/^[=+\-@]/.test(v))v="'"+v;return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-  return [H.join(",")].concat(shown().map(({p,a})=>[a.tier,a.score,p.county,p.id,p.owner,p.owner_level,p.use_label,p.acres,p.vacant,p.zoning,a.z,p.max_du_per_acre,p.est_units,p.just_value,p.flood_zone,p.surplus_list,p.lat,p.lon,a.fail.concat(a.unknown).join("; "),p.appraiser_url].map(q).join(","))).join("\n")}
+  return [H.join(",")].concat(shown().map(({p,a})=>[FLAGS[key(p)]?"yes":"",(FLAGS[key(p)]||{}).note||"",a.tier,a.score,p.county,p.id,p.owner,p.owner_level,p.use_label,p.acres,p.vacant,p.zoning,a.z,p.max_du_per_acre,p.est_units,p.just_value,p.flood_zone,p.surplus_list,p.lat,p.lon,a.fail.concat(a.unknown).join("; "),p.appraiser_url].map(q).join(","))).join("\n")}
 $("csv").addEventListener("click",async()=>{const text=csvText();
   try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/csv"}));a.download="public-land-"+(data.generated_at||"list")+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("List downloaded");return}catch(e){}
   $("copyBox").hidden=false;$("copyTa").value=text;$("copyTa").select();try{await navigator.clipboard.writeText(text);toast("List copied to clipboard")}catch(e){}});
@@ -324,6 +336,11 @@ $("csv").addEventListener("click",async()=>{const text=csvText();
 function setData(d){data=d;selKey=null;fitted=false;writeCrit();readCrit();renderSources();renderChanges();render()}
 $("crit").addEventListener("input",()=>{readCrit();render()});
 $("show").addEventListener("change",renderTable);
+$("flagSave").addEventListener("click",()=>{const n=Object.keys(FLAGS).length;if(!n){toast("No flagged parcels to back up yet");return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify({flags:FLAGS,saved:new Date().toISOString()},null,1)],{type:"application/json"}));a.download="public-land-flags-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();a.remove();toast("Backed up "+n+" flagged parcels")});
+$("flagLoad").addEventListener("click",()=>$("flagFile").click());
+$("flagFile").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!d||typeof d.flags!=="object")throw 0;let n=0;for(const k in d.flags){if(!FLAGS[k]){FLAGS[k]={note:String((d.flags[k]||{}).note||""),at:String((d.flags[k]||{}).at||"")};n++}}saveFlags();renderTable();renderDetail();drawDots();toast("Restored "+n+" flags; "+Object.keys(FLAGS).length+" in total")}catch(err){toast("That file is not a flags backup. Nothing was changed.")}};fr.readAsText(f);e.target.value=""});
+saveFlags();
 $("reset").addEventListener("click",()=>{C=JSON.parse(JSON.stringify(DEF));writeCrit();readCrit();render()});
 Promise.all([fetch("data.json").then(r=>{if(!r.ok)throw 0;return r.json()}),fetch("boundaries.json").then(r=>r.ok?r.json():{dev:[],places:[]}).catch(()=>({dev:[],places:[]}))])
   .then(([d,g])=>{GEO=g;EXAMPLE=unpack(d);$("loadNote").hidden=true;setData(EXAMPLE,false)})
