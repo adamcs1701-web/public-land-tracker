@@ -1,0 +1,652 @@
+{
+ "_about": "Proposal paths shown on each parcel. The first path whose 'match' fits the parcel wins, so specific paths come before general ones. match.level = owner type(s), match.county = county(ies), match.owner = a pattern tested against the owner name (case ignored), match.not = a pattern that must NOT match. Templates: add {\"name\": \"...\", \"file\": \"templates/...\"} to a path's templates list.",
+ "playbook": "https://claude.ai/artifact/VsDC1zNwiNmieUm3bbvWmP",
+ "updated": "2026-11-13",
+ "paths": [
+  {
+   "id": "college",
+   "match": {
+    "owner": "COLLEGE|UNIVERSITY|DISTRICT BOARD OF TR|DIST BD OF TR|DIST BRD OF TRS|DISTRICT BOARD OF TRUSTEES|DIST BOARD OF TR",
+    "not": "LLC|\\bINC\\b|STATION"
+   },
+   "title": "State college or university land",
+   "summary": "Owned by a college or university board of trustees, not the school district. Each board has its own real estate and P3 policy.",
+   "tracks": [
+    {
+     "name": "College P3 policy",
+     "rule": "Board of trustees policy + s. 255.065",
+     "to": "The college's facilities or business office",
+     "fee": "Set by the college",
+     "vote": "Board of trustees",
+     "steps": [
+      "Confirm the owner on the property appraiser record (some of these are private colleges).",
+      "Ask the facilities office whether the site is in the campus master plan.",
+      "File under the college's P3 policy; Palm Beach State College uses Policy 6Hx-18-4.74."
+     ],
+     "links": [
+      {
+       "text": "Palm Beach State College P3 policy",
+       "href": "https://pbsc.edu/about/district-board-of-trustees/policies/section-4/4.74.php"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: school boards"
+  },
+  {
+   "id": "md-county",
+   "match": {
+    "level": [
+     "county"
+    ],
+    "county": [
+     "miami-dade"
+    ]
+   },
+   "title": "Miami-Dade County land",
+   "summary": "Two doors. Leasing or buying the land goes through IO 8-4. A proposal that also delivers a public facility adds the P3 track under Code s. 2-8.2.6 and AO 3-65.",
+   "tracks": [
+    {
+     "name": "Land track",
+     "rule": "Implementing Order 8-4",
+     "to": "County Mayor, or the commissioner for the parcel's district",
+     "fee": "None set by IO 8-4 (you pay public notice costs)",
+     "vote": "Majority if the district commissioner sponsors; two-thirds if not",
+     "steps": [
+      "Letter application with a sworn ownership disclosure and proof you are a responsible entity (finances, experience, past performance).",
+      "For a direct deal (non-profit s. 125.38, affordable housing s. 125.379, economic development s. 125.045), add the full package: use and public purpose, team, cost and financing, milestones, proposed rent or price.",
+      "Mayor refers it to Internal Services within 10 days; departments have 10 days to claim the land; deed and grant checks within 30 days; zoning review within 15 days.",
+      "Value: two MAI appraisals over $5 million, otherwise the Property Appraiser's value. District commissioner gets 4 weeks' notice.",
+      "Public notice for a direct deal (newspaper, mail within half a mile, or a site sign), at your cost.",
+      "You sign the lease or contract first, then it goes to the Board after Commission Auditor review."
+     ],
+     "links": [
+      {
+       "text": "IO 8-4 (PDF)",
+       "href": "https://documents.miamidade.gov/ao-io/IO/IO-08-04.pdf"
+      }
+     ]
+    },
+    {
+     "name": "P3 track",
+     "rule": "County Code s. 2-8.2.6 and AO 3-65, plus s. 255.065",
+     "to": "Director of the department the project serves, or Strategic Procurement, 111 NW 1st Street, 13th Floor, Miami, FL 33128",
+     "fee": "$25,000 by cash, cashier's check or other noncancelable instrument; extra costs billed, due in 30 days",
+     "vote": "Board resolution to authorize a P3",
+     "steps": [
+      "Proposal with everything s. 255.065(4) requires, plus small and community-based business benefits and every obligation you expect from the county.",
+      "7 days to cure missing items.",
+      "Mayor may decline within 30 days and return the fee.",
+      "Evaluation: 90 days under the published code (a 60-day change was proposed).",
+      "Mayor recommends a solicitation or rejection; the Board decides. Copies go to the Inspector General and Ethics Commission."
+     ],
+     "links": [
+      {
+       "text": "Unsolicited proposals page",
+       "href": "https://www.miamidade.gov/global/strategic-procurement/unsolicited-proposals.page"
+      },
+      {
+       "text": "AO 3-65 (PDF)",
+       "href": "https://documents.miamidade.gov/mayor/memos/03.29.22-Administrative-Order-3-65-Unsolicited-Proposals.pdf"
+      },
+      {
+       "text": "Code s. 2-8.2.6",
+       "href": "https://library.municode.com/fl/miami_-_dade_county/codes/code_of_ordinances?nodeId=PTIIICOOR_CH2AD_ARTIINGE_S2-8.2.6PUIVPAUNPR"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Miami-Dade County",
+   "templates": []
+  },
+  {
+   "id": "bw-county",
+   "match": {
+    "level": [
+     "county"
+    ],
+    "county": [
+     "broward"
+    ]
+   },
+   "title": "Broward County land",
+   "summary": "No public application route to lease or buy county land. The practical door is an unsolicited P3 proposal under s. 255.065; surplus land is otherwise sold by public bid (s. 125.35).",
+   "tracks": [
+    {
+     "name": "P3 track",
+     "rule": "Administrative Code s. 21.35 and s. 255.065",
+     "to": "Broward County Purchasing Division",
+     "fee": "Set under Admin Code s. 38.40; amount not published online, confirm with Purchasing",
+     "vote": "Board finds it sufficient on a preliminary basis, then advertises",
+     "steps": [
+      "Proposal with the s. 255.065(4) contents, a County Business Enterprise participation plan, vendor questionnaire and lobbyist registration.",
+      "Confidential pages in a sealed envelope, 3 copies, labeled with the exempting statute.",
+      "Cone of silence starts for you on receipt.",
+      "Board decides on preliminary sufficiency and advertises for competing proposals (the 2020 Sheridan Street notice ran 51 days).",
+      "Board ranks proposals on the s. 255.065 factors."
+     ],
+     "links": [
+      {
+       "text": "Admin Code Part V",
+       "href": "https://library.municode.com/fl/broward_county/codes/administrative_code?nodeId=CH21OPPOPRCOFIADSEDE_PTVPRCOSO_21.43PRTEPSO"
+      },
+      {
+       "text": "Real Property services",
+       "href": "https://www.broward.org/RealProperty/Pages/Services.aspx"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Broward County",
+   "templates": []
+  },
+  {
+   "id": "pb-county",
+   "match": {
+    "level": [
+     "county"
+    ],
+    "county": [
+     "palm-beach"
+    ]
+   },
+   "title": "Palm Beach County land",
+   "summary": "Two doors. Using or buying the land goes through the real property ordinance (s. 22-108). Building or running a public facility goes through Procurement Code s. 2-62 and s. 255.065.",
+   "tracks": [
+    {
+     "name": "Land track",
+     "rule": "PREM Ordinance s. 22-108 (2024)",
+     "to": "Department Director, Facilities Development & Operations",
+     "fee": "$25,000 with the proposal; the county will ask for more if costs run higher",
+     "vote": "Supermajority (5 of 7) for any sale, purchase or exchange",
+     "steps": [
+      "Pre-meeting with FDO / Property & Real Estate Management to confirm the parcel is not committed.",
+      "Submit to the Department Director with the fee.",
+      "Staff may reject without review.",
+      "If it proceeds, others may compete; your terms must hold up against a competitor's \"not less favorable\" offer.",
+      "Appraisal; Property Review Committee if the deal assumes a rezoning or departs from appraised value.",
+      "Board agenda item."
+     ],
+     "links": [
+      {
+       "text": "Ordinance text, agenda item 4A1 (PDF)",
+       "href": "http://www.pbcgov.com/pubInf/Agenda/20241022/4A1.pdf"
+      }
+     ]
+    },
+    {
+     "name": "P3 track",
+     "rule": "Procurement Code s. 2-62 and s. 255.065",
+     "to": "Purchasing / the department the facility serves",
+     "fee": "Set by the county",
+     "vote": "Board: reject, order an evaluation, then accept or reject",
+     "steps": [
+      "File the proposal with the s. 255.065(4) contents.",
+      "Board chooses to reject or direct a formal evaluation.",
+      "If it proceeds, s. 255.065 notice and a 21 to 120 day competing window apply.",
+      "Cone of silence (s. 2-355) once competition is under way."
+     ],
+     "links": [
+      {
+       "text": "Oct 22, 2024 Board agenda",
+       "href": "https://discover.pbc.gov/countycommissioners/Agenda_Master_HTML/20241022.htm"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Palm Beach County",
+   "templates": []
+  },
+  {
+   "id": "md-school",
+   "match": {
+    "level": [
+     "school"
+    ],
+    "county": [
+     "miami-dade"
+    ]
+   },
+   "title": "Miami-Dade County Public Schools land",
+   "summary": "The School Board is its own owner with its own policy. Not IO 8-4.",
+   "tracks": [
+    {
+     "name": "School Board P3",
+     "rule": "School Board Policy 6327 and s. 255.065",
+     "to": "M-DCPS Facilities / Office of Economic Opportunity",
+     "fee": "Set by the Board",
+     "vote": "School Board approval at each stage",
+     "steps": [
+      "Ask whether the site is surplus or part of the facilities work plan.",
+      "File under Policy 6327.",
+      "Cone of silence applies from receipt."
+     ],
+     "links": []
+    }
+   ],
+   "playbook_section": "Other owners: school boards"
+  },
+  {
+   "id": "school",
+   "match": {
+    "level": [
+     "school"
+    ]
+   },
+   "title": "School district land",
+   "summary": "The school board is a s. 255.065 entity. Surplus land usually goes through the board's own surplus process.",
+   "tracks": [
+    {
+     "name": "School district",
+     "rule": "School board policy and s. 255.065",
+     "to": "District Facilities / Real Estate",
+     "fee": "Set by the board",
+     "vote": "School board",
+     "steps": [
+      "Ask Facilities / Real Estate whether the site is declared surplus.",
+      "If not surplus, an unsolicited P3 proposal must serve a school purpose (for example teacher housing or a shared facility)."
+     ],
+     "links": []
+    }
+   ],
+   "playbook_section": "Other owners: school boards"
+  },
+  {
+   "id": "find",
+   "match": {
+    "owner": "F I N D|INLAND NAVIGATION"
+   },
+   "title": "Florida Inland Navigation District land",
+   "summary": "A special district that holds spoil and waterway management sites along the Intracoastal. Most sites are reserved for dredging.",
+   "tracks": [
+    {
+     "name": "Special district",
+     "rule": "FIND's own rules; s. 255.065 if it can build the project",
+     "to": "FIND staff",
+     "fee": "Set by the district",
+     "vote": "FIND board",
+     "steps": [
+      "Ask whether the site is still needed for dredged material.",
+      "Leases for public waterfront use are more common than sales."
+     ],
+     "links": [
+      {
+       "text": "FIND",
+       "href": "https://www.aicw.org"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: special districts"
+  },
+  {
+   "id": "sfrta",
+   "match": {
+    "owner": "SOUTH FLORIDA REGIONAL"
+   },
+   "title": "Regional transportation authority land (likely SFRTA / Tri-Rail)",
+   "summary": "Hospital districts, ports, airports, expressway and other authorities each have their own board and usually their own procurement rules. s. 255.065 applies if the district can build the project.",
+   "tracks": [
+    {
+     "name": "Special district",
+     "rule": "The district's charter and procurement policy; s. 255.065",
+     "to": "The district's real estate or procurement office",
+     "fee": "Set by the district",
+     "vote": "District board",
+     "steps": [
+      "Find the district's unsolicited proposal or P3 policy on its website.",
+      "Ask whether the land is needed for its operations (airports need FAA sign-off on non-aviation use)."
+     ],
+     "links": []
+    }
+   ],
+   "playbook_section": "Other owners: special districts"
+  },
+  {
+   "id": "fdot",
+   "match": {
+    "level": [
+     "state"
+    ],
+    "owner": "DOT|D O T|TRANSPORTATION|TURNPIKE"
+   },
+   "title": "FDOT land",
+   "summary": "State land, so there is no s. 255.065 unsolicited path. FDOT sells or leases surplus right-of-way through its district right-of-way office.",
+   "tracks": [
+    {
+     "name": "FDOT surplus",
+     "rule": "s. 337.25 (surplus property) and s. 337.251 (leases)",
+     "to": "FDOT District 4 (Broward, Palm Beach) or District 6 (Miami-Dade) Right of Way office",
+     "fee": "Appraisal and closing costs",
+     "vote": "FDOT",
+     "steps": [
+      "Ask the district Right of Way office whether the parcel is surplus.",
+      "Local governments get the first chance at surplus land; partnering with the city or county can help.",
+      "Otherwise sold or leased at appraised value, often by bid."
+     ],
+     "links": [
+      {
+       "text": "s. 337.25",
+       "href": "https://www.flsenate.gov/Laws/Statutes/2025/337.25"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: state land"
+  },
+  {
+   "id": "state",
+   "match": {
+    "level": [
+     "state"
+    ]
+   },
+   "title": "State land (TIITF or a state agency)",
+   "summary": "State agencies are not covered by s. 255.065, so there is no unsolicited P3 path. TIITF land goes through the DEP Division of State Lands.",
+   "tracks": [
+    {
+     "name": "State surplus or lease",
+     "rule": "Ch. 253 (state lands)",
+     "to": "DEP Division of State Lands, or the managing agency",
+     "fee": "Varies",
+     "vote": "Board of Trustees (Governor and Cabinet) for most dispositions",
+     "steps": [
+      "Find the managing agency on the property appraiser record or with State Lands.",
+      "Ask whether the parcel is surplus.",
+      "If a city or county can take title first, partner with it and use its process."
+     ],
+     "links": [
+      {
+       "text": "DEP Division of State Lands",
+       "href": "https://floridadep.gov/lands"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: state land"
+  },
+  {
+   "id": "cra",
+   "match": {
+    "owner": "\\bCRA\\b|C R A|REDEVELOP|OVERTOWN|PARK W|COMMUNITY$",
+    "level": [
+     "district",
+     "municipal",
+     "other"
+    ]
+   },
+   "title": "Community Redevelopment Agency land",
+   "summary": "CRAs hold land specifically to get it redeveloped, and they often issue their own requests for proposals.",
+   "tracks": [
+    {
+     "name": "CRA",
+     "rule": "Ch. 163 Part III and the CRA's redevelopment plan",
+     "to": "CRA executive director",
+     "fee": "Set by the CRA (often none for a letter of interest)",
+     "vote": "CRA board",
+     "steps": [
+      "Read the CRA's redevelopment plan for what it wants on the site.",
+      "Send a letter of interest; the CRA may run an RFP on the site in response (s. 163.380 requires 30 days' public notice before a disposition).",
+      "Expect affordability or job commitments in the development agreement."
+     ],
+     "links": [
+      {
+       "text": "s. 163.380",
+       "href": "https://www.flsenate.gov/Laws/Statutes/2025/163.380"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: special districts"
+  },
+  {
+   "id": "housing-authority",
+   "match": {
+    "owner": "HOUSING AUTH|HOUSING AUTHORI|HOUSING AUTHORIT"
+   },
+   "title": "Housing authority land",
+   "summary": "Public housing authorities are regulated by HUD. They often partner with developers on mixed-income projects through their own solicitations.",
+   "tracks": [
+    {
+     "name": "Housing authority",
+     "rule": "Ch. 421 and HUD rules",
+     "to": "Housing authority executive director / development office",
+     "fee": "Set by the authority",
+     "vote": "Authority board, plus HUD approval for any disposition of public housing land",
+     "steps": [
+      "Ask whether the site is in the authority's development pipeline.",
+      "Disposition of public housing land needs HUD approval (Section 18 or RAD).",
+      "Most deals are ground leases with the authority as a partner."
+     ],
+     "links": [
+      {
+       "text": "HUD Section 18 demolition and disposition",
+       "href": "https://www.hud.gov/program_offices/public_indian_housing/centers/sac/demo_dispo"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: special districts"
+  },
+  {
+   "id": "authority",
+   "match": {
+    "level": [
+     "district"
+    ]
+   },
+   "title": "Special district or authority land",
+   "summary": "Hospital districts, ports, airports, expressway and other authorities each have their own board and usually their own procurement rules. s. 255.065 applies if the district can build the project.",
+   "tracks": [
+    {
+     "name": "Special district",
+     "rule": "The district's charter and procurement policy; s. 255.065",
+     "to": "The district's real estate or procurement office",
+     "fee": "Set by the district",
+     "vote": "District board",
+     "steps": [
+      "Find the district's unsolicited proposal or P3 policy on its website.",
+      "Ask whether the land is needed for its operations (airports need FAA sign-off on non-aviation use)."
+     ],
+     "links": []
+    }
+   ],
+   "playbook_section": "Other owners: special districts"
+  },
+  {
+   "id": "pompano",
+   "match": {
+    "level": [
+     "municipal"
+    ],
+    "owner": "POMPANO BEACH"
+   },
+   "title": "City of Pompano Beach land",
+   "summary": "The city has adopted unsolicited proposal rules under s. 255.065.",
+   "tracks": [
+    {
+     "name": "City P3",
+     "rule": "City code (unsolicited proposals) and s. 255.065",
+     "to": "City Purchasing",
+     "fee": "$25,000 by money order or cashier's check; raised if review costs more; unused part refunded",
+     "vote": "City Commission",
+     "steps": [
+      "Pre-meeting with the city.",
+      "File with the fee.",
+      "Competing-proposal window of 21 to 120 days if the city proceeds."
+     ],
+     "links": [
+      {
+       "text": "Pompano Beach code",
+       "href": "https://codelibrary.amlegal.com/codes/pompanobeach/latest/pompanobeach_fl/0-0-0-90669"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: cities"
+  },
+  {
+   "id": "delray",
+   "match": {
+    "level": [
+     "municipal"
+    ],
+    "owner": "DELRAY"
+   },
+   "title": "City of Delray Beach land",
+   "summary": "The city has P3 guidelines for unsolicited proposals.",
+   "tracks": [
+    {
+     "name": "City P3",
+     "rule": "Delray Beach P3 guidelines and s. 255.065",
+     "to": "Purchasing Manager",
+     "fee": "$25,000, non-refundable",
+     "vote": "City Commission",
+     "steps": [
+      "File with the fee.",
+      "The Purchasing Manager can decline within 30 days.",
+      "Palm Beach County cone of silence (s. 2-355) applies."
+     ],
+     "links": [
+      {
+       "text": "Delray Beach P3 guidelines",
+       "href": "https://delraybeachfl.gov/home/showpublisheddocument/11770/638000414744700000"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: cities"
+  },
+  {
+   "id": "lake-worth",
+   "match": {
+    "level": [
+     "municipal"
+    ],
+    "owner": "LAKE WORTH"
+   },
+   "title": "City of Lake Worth Beach land",
+   "summary": "The city charges a staff-time fee plus a bid application fee.",
+   "tracks": [
+    {
+     "name": "City P3",
+     "rule": "City code and s. 255.065",
+     "to": "City Procurement",
+     "fee": "$5,000 staff-time fee plus $30,000 bid application fee",
+     "vote": "City Commission",
+     "steps": [
+      "File with the fees.",
+      "Notice runs 21 days and 10 days before the commission meeting."
+     ],
+     "links": []
+    }
+   ],
+   "playbook_section": "Other owners: cities"
+  },
+  {
+   "id": "hollywood",
+   "match": {
+    "level": [
+     "municipal"
+    ],
+    "owner": "HOLLYWOOD"
+   },
+   "title": "City of Hollywood land",
+   "summary": "The city sets its unsolicited proposal fee by commission resolution.",
+   "tracks": [
+    {
+     "name": "City P3",
+     "rule": "City code and s. 255.065",
+     "to": "City Procurement",
+     "fee": "Set by resolution; ask Procurement for the current one",
+     "vote": "City Commission",
+     "steps": [
+      "Get the current fee resolution from Procurement.",
+      "File under s. 255.065."
+     ],
+     "links": []
+    }
+   ],
+   "playbook_section": "Other owners: cities"
+  },
+  {
+   "id": "pbg",
+   "match": {
+    "level": [
+     "municipal"
+    ],
+    "owner": "PALM BEACH GARDENS"
+   },
+   "title": "City of Palm Beach Gardens land",
+   "summary": "The city follows s. 255.065 and the county cone of silence.",
+   "tracks": [
+    {
+     "name": "City P3",
+     "rule": "s. 255.065 and the city Procurement Manual",
+     "to": "Procurement Management Office",
+     "fee": "Set by the city",
+     "vote": "City Council",
+     "steps": [
+      "Read the Procurement Manual.",
+      "Cone of silence applies."
+     ],
+     "links": [
+      {
+       "text": "Procurement Manual (Aug 2025)",
+       "href": "https://www.pbgfl.gov/DocumentCenter/View/22084/Procurement-Policy-and-Procedures-Manual--082025"
+      }
+     ]
+    }
+   ],
+   "playbook_section": "Other owners: cities"
+  },
+  {
+   "id": "city",
+   "match": {
+    "level": [
+     "municipal"
+    ]
+   },
+   "title": "City land",
+   "summary": "The city's own code governs. Most South Florida cities have adopted s. 255.065 procedures; if this one has not, it must set a fee and process first.",
+   "tracks": [
+    {
+     "name": "City",
+     "rule": "City code and s. 255.065",
+     "to": "City Manager or Procurement",
+     "fee": "Set by the city",
+     "vote": "City Commission",
+     "steps": [
+      "Search the city code for \"unsolicited proposal\" or \"public-private partnership\".",
+      "Ask the City Manager's office whether the parcel is surplus or committed.",
+      "Check whether a CRA covers the area; it may be the better partner."
+     ],
+     "search": true,
+     "links": []
+    }
+   ],
+   "playbook_section": "Other owners: cities"
+  },
+  {
+   "id": "other",
+   "match": {},
+   "title": "Owner needs checking",
+   "summary": "This owner did not match a known government category. It may be a non-profit, a private lessee or a mislabeled record.",
+   "tracks": [
+    {
+     "name": "Check the owner",
+     "rule": "Depends on who really owns it",
+     "to": "",
+     "fee": "",
+     "vote": "",
+     "steps": [
+      "Open the property appraiser record and confirm the owner.",
+      "If it is a government body, the matching section of the playbook applies."
+     ],
+     "links": []
+    }
+   ],
+   "playbook_section": "How to use this playbook"
+  }
+ ]
+}

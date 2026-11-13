@@ -103,6 +103,16 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--bg)} tbody tr.sel{backg
 .rec .t{overflow-wrap:anywhere}.rec .m{color:var(--muted);font-size:12px}
 .tag{display:inline-block;font-size:11px;padding:0 6px;border-radius:999px;background:var(--not-bg);color:var(--muted);margin-right:4px}
 .tag.hot{background:var(--review-bg);color:var(--review);font-weight:600}
+.path{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.path h3{font:600 14px var(--display);margin:0}
+.path .sum{margin:0;font-size:13px}
+.path details{border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.path summary{cursor:pointer;font-weight:600;font-size:13px}
+.path .facts{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 12px;font-size:13px;margin:8px 0}
+.path .facts dt{color:var(--muted);font-size:12px}.path .facts dd{margin:0;overflow-wrap:anywhere}
+.path ol{margin:4px 0 6px;padding-left:20px;font-size:13px;display:flex;flex-direction:column;gap:3px}
+.path .row2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.path textarea{height:260px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;max-width:90vw}
 textarea{width:100%;height:120px;font:12px var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px}
 </style>
@@ -333,6 +343,62 @@ function recSection(p){const src=REC_SRC[p.county]||{},cov=REC.cov[p.county],lis
     box.appendChild(el("div",{class:"rec"},[el("span",{class:"m",text:x.final||x.intro||""}),el("span",{class:"t"},[el("a",{href:x.url,target:"_blank",rel:"noopener",text:"File "+x.file+(x.reference?" ("+x.reference+")":"")}),document.createTextNode(" · "+[x.type,x.status].filter(Boolean).join(", "))]),
       el("span",{class:"m",text:x.how==="folio"?"folio match":"address match"}),el("span",{class:"t"},[tags,document.createTextNode(" "+(x.title||x.name||""))])]))}
   const links=el("div",{class:"links"});if(src.search)links.appendChild(el("a",{href:src.search,target:"_blank",rel:"noopener",text:"Search "+src.name+" records"}));if(src.or)links.appendChild(el("a",{href:src.or,target:"_blank",rel:"noopener",text:src.orName}));box.appendChild(links);return box}
+// ---- Proposal path: which rules apply to this owner (rules live in paths.json) ----
+let PATHS=null;
+function pathFor(p){if(!PATHS)return null;const o=(p.owner||"").toUpperCase();
+  for(const x of PATHS.paths){const m=x.match||{};
+    if(m.level&&!m.level.includes(p.owner_level))continue;
+    if(m.county&&!m.county.includes(p.county))continue;
+    try{if(m.owner&&!new RegExp(m.owner,"i").test(o))continue;if(m.not&&new RegExp(m.not,"i").test(o))continue}catch(e){continue}
+    return x}
+  return null}
+function starterText(p,a,x){const t=new Date().toISOString().slice(0,10),L=[];
+  const loc=[p.address,p.city].filter(Boolean).join(", ")||"[address]";
+  L.push("# Unsolicited proposal: "+loc,"","Draft started "+t+" from the Florida Public Land Tracker. Replace every [bracket].","");
+  L.push("## Governing rules","","Owner: "+(p.owner||"")+" ("+(OWNLAB[p.owner_level]||p.owner_level)+")","Path: "+x.title);
+  for(const k of x.tracks||[]){L.push("","- "+k.name+": "+k.rule);if(k.to)L.push("  - Send to: "+k.to);if(k.fee)L.push("  - Fee: "+k.fee);if(k.vote)L.push("  - Approval: "+k.vote)}
+  L.push("","## Cover letter","","To: "+(((x.tracks||[])[0]||{}).to||"[recipient]"),"From: [legal entity name, state of formation, address, contact]",
+    "Re: "+(p.county==="miami-dade"?"Folio ":"Parcel ")+p.id+", "+loc+(p.acres!=null?", "+fmt(p.acres,2)+" acres":""),
+    "Request: [lease / sale / ground lease / P3 comprehensive agreement] for [project]","Fee enclosed: [amount, instrument number]","");
+  L.push("## 1. Executive summary","","[What you will build, for whom, and what the public gets.]","");
+  L.push("## 2. Proposer qualifications","","- Entity structure and all principals over 5%","- Team: developer, architect, engineer, contractor, operator, lender","- Comparable completed projects","- Financial capacity (audited statements or lender letter)","");
+  L.push("## 3. Site and project","","| Item | Value |","|---|---|");
+  const row=(k,v)=>L.push("| "+k+" | "+(v==null||v===""?"unknown":v)+" |");
+  row("Parcel",p.id);row("Owner",p.owner);row("Department",p.department);row("Address",loc);row("Size",p.acres!=null?fmt(p.acres,2)+" acres":"");
+  row("Zoning",p.zoning?p.zoning+(p.zoning_jurisdiction?" ("+p.zoning_jurisdiction+")":""):"");row("Future land use",p.land_use);
+  row("Allowed density",p.max_du_per_acre!=null?(p.max_du_per_acre_high?p.max_du_per_acre+" to "+p.max_du_per_acre_high:p.max_du_per_acre)+" units/acre":"");
+  row("Estimated yield",p.est_units!=null?fmt(p.est_units)+" units":"");row("Just value",money(p.just_value));row("Flood zone",p.flood_zone);row("Recorded use",p.use_label);
+  if(p.appraiser_url)row("Appraiser record",p.appraiser_url);
+  L.push("","- Program: [units by income band, square feet by use, height, parking]","- Zoning path: [as-of-right / rezoning / variances / land-use amendment]","");
+  L.push("## 4. Public benefit","","[Why this serves a public purpose; what the government gives and gets.]","");
+  L.push("## 5. Deal terms","","- Structure: [fee sale / ground lease of __ years / P3]","- Price or rent, escalations, revenue share","- Performance deadlines and reverter you accept","");
+  L.push("## 6. Financing plan","","[Sources and uses; equity, debt, tax credits, grants; any public funding requested; bonds or security.]","");
+  L.push("## 7. Schedule","","[Approvals, closing, permits, construction start, completion, occupancy.]","");
+  L.push("## 8. Operations and maintenance (P3 only)","","[Operator, standards, term, handback.]","");
+  L.push("## 9. Local requirements","",p.county==="miami-dade"?"- Small business / CSBE commitments, affidavits, ownership disclosure":p.county==="broward"?"- County Business Enterprise plan, vendor questionnaire, lobbyist registration":"- Small Business Development Ordinance participation, cone of silence acknowledgement","");
+  L.push("## 10. Exhibits","","- Tracker printout, aerial, survey, concept plans, financials, lender letters, corporate documents","");
+  L.push("## Steps for this owner","");(x.tracks||[]).forEach(k=>{L.push("### "+k.name);(k.steps||[]).forEach((st,i)=>L.push((i+1)+". "+st));L.push("")});
+  if(a&&(a.fail.length||a.unknown.length)){L.push("## Open issues from the tracker","");a.fail.concat(a.unknown).forEach(r=>L.push("- "+r));L.push("")}
+  L.push("_Research aid, not legal advice. Have Florida land-use or procurement counsel review before filing._");return L.join("\n")}
+function pathSection(p,a){const box=el("div",{class:"path"},[el("h3",{text:"Proposal path"})]);
+  if(!PATHS){box.appendChild(el("p",{class:"unk",text:"Proposal rules are loading."}));return box}
+  const x=pathFor(p);if(!x){box.appendChild(el("p",{class:"unk",text:"No proposal path matches this owner."}));return box}
+  box.appendChild(el("p",{class:"sum"},[el("strong",{text:x.title+". "}),document.createTextNode(x.summary||"")]));
+  (x.tracks||[]).forEach((k,i)=>{const det=el("details",null,[el("summary",{text:k.name+" · "+k.rule})]);if(i===0)det.open=true;
+    const f=el("dl",{class:"facts"});[["Send to",k.to],["Fee",k.fee],["Approval",k.vote]].forEach(([t,v])=>{if(v){f.appendChild(el("dt",{text:t}));f.appendChild(el("dd",{text:v}))}});det.appendChild(f);
+    if(k.steps&&k.steps.length)det.appendChild(el("ol",null,k.steps.map(t=>el("li",{text:t}))));
+    const ln=el("div",{class:"links"});(k.links||[]).forEach(l=>{if(/^https?:\/\//.test(l.href))ln.appendChild(el("a",{href:l.href,target:"_blank",rel:"noopener",text:l.text}))});
+    if(k.search){const nm=(p.owner||"").replace(/\b(CITY|TOWN|VILLAGE) OF\b/g,"").replace(/\b(CITY|TOWN|VILLAGE)$/,"").trim();ln.appendChild(el("a",{href:"https://www.google.com/search?q="+encodeURIComponent(nm+" Florida code unsolicited proposal public-private partnership"),target:"_blank",rel:"noopener",text:"Search this city's code"}))}
+    if(ln.children.length)det.appendChild(ln);box.appendChild(det)});
+  const tl=el("div",{class:"links"});(x.templates||[]).forEach(t=>{if(t.file&&!/^[a-z]+:|\.\./i.test(t.file))tl.appendChild(el("a",{href:t.file,target:"_blank",rel:"noopener",text:t.name}))});
+  if(PATHS.playbook)tl.appendChild(el("a",{href:PATHS.playbook,target:"_blank",rel:"noopener",text:"Playbook: "+(x.playbook_section||"overview")}));box.appendChild(tl);
+  const ta=el("textarea",{readonly:"","aria-label":"Proposal starter"});ta.hidden=true;
+  const name="proposal-"+p.county+"-"+String(p.id).replace(/[^\w-]/g,"")+".md";
+  const bDl=el("button",{type:"button",text:"Download proposal starter"}),bCp=el("button",{type:"button",text:"Copy"});
+  bDl.addEventListener("click",()=>{const text=starterText(p,a,x);try{const l=document.createElement("a");l.href=URL.createObjectURL(new Blob([text],{type:"text/markdown"}));l.download=name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(l.href),4000);toast("Proposal starter downloaded")}catch(e){ta.hidden=false;ta.value=text;ta.select()}});
+  bCp.addEventListener("click",async()=>{const text=starterText(p,a,x);ta.hidden=false;ta.value=text;ta.select();try{await navigator.clipboard.writeText(text);toast("Proposal starter copied")}catch(e){toast("Select the text below and copy it")}});
+  box.appendChild(el("div",{class:"row2"},[bDl,bCp,el("span",{class:"unk",text:"A filled-in outline with this parcel's facts and the rules above."})]));box.appendChild(ta);
+  return box}
 function renderDetail(){const r=rows.find(r=>key(r.p)===selKey),d=$("detail");if(!r){d.replaceChildren(el("h2",{text:"Select a parcel"}));return}
   const {p,a}=r,TL={ripe:"Ripe",review:"Needs review",not:"Not ripe"},dd=(t,v)=>el("div",null,[el("dt",{text:t}),el("dd",{text:v||"unknown"})]);
   const links=[];if(p.appraiser_url&&/^https:\/\//.test(p.appraiser_url))links.push(el("a",{href:p.appraiser_url,target:"_blank",rel:"noopener",text:"Property appraiser record"}));
@@ -345,6 +411,7 @@ function renderDetail(){const r=rows.find(r=>key(r.p)===selKey),d=$("detail");if
     el("ul",{class:"reasons"},[...a.fail.map(t=>el("li",{class:"fail",text:"Rules it out: "+t})),...a.unknown.map(t=>el("li",{class:"fail",text:"Check: "+t})),...a.pass.map(t=>el("li",{text:"Fits: "+t}))]),
     el("div",{class:"links"},links),
     recSection(p),
+    pathSection(p,a),
     el("div",{class:"flagbox"},[note,el("span",{class:"unk",text:FLAGS[fk]?"Flagged "+FLAGS[fk].at:"Not flagged. Star it, or type a note to flag it."})]))}
 
 function renderChanges(){const ch=(data.changes||[]).slice(0,60),TL={added:"review",removed:"not",changed:"ripe"},NM={added:"Added",removed:"Removed",changed:"Changed"};
@@ -368,6 +435,7 @@ saveFlags();
 $("reset").addEventListener("click",()=>{C=JSON.parse(JSON.stringify(DEF));writeCrit();readCrit();render()});
 Promise.all([fetch("data.json").then(r=>{if(!r.ok)throw 0;return r.json()}),fetch("boundaries.json").then(r=>r.ok?r.json():{dev:[],places:[]}).catch(()=>({dev:[],places:[]}))])
   .then(([d,g])=>{GEO=g;EXAMPLE=unpack(d);$("loadNote").hidden=true;setData(EXAMPLE,false);
+    fetch("paths.json").then(r=>r.ok?r.json():null).then(x=>{if(x&&Array.isArray(x.paths)){PATHS=x;renderDetail()}}).catch(()=>{});
     fetch("records.json").then(r=>r.ok?r.json():null).then(x=>{if(!x)return;REC={items:x.items||{},by:x.by_parcel||{},cov:x.coverage||{},committed:new Set(x.committed_tags||[]),loaded:true};render()}).catch(()=>{})})
   .catch(()=>{$("loadNote").textContent="The parcel data could not be loaded. Reload the page, or check the refresh history for a failed run."});
 })();
